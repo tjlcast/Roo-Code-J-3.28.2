@@ -1327,6 +1327,8 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		this.emit(RooCodeEventName.TaskStarted)
 
 		while (!this.abort) {
+			// 用户任务 → AI 分析 → 使用工具 → 工具结果 → AI 决策 → 完成/继续
+			//        				↑_____________|				[attempt_completion ]
 			const didEndLoop = await this.recursivelyMakeClineRequests(nextUserContent, includeFileDetails)
 			includeFileDetails = false // We only need file details the first time.
 
