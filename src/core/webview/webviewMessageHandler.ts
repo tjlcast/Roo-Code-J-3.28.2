@@ -1506,6 +1506,7 @@ export const webviewMessageHandler = async (
 			}
 			break
 		case "upsertApiConfiguration":
+			// {type: 'upsertApiConfiguration', text: 'default', apiConfiguration: {apiProvider: 'openai', apiModelId: 'gpt-4o', openAiBaseUrl: 'http://121.40.102.152:9966', openAiApiKey: '123', openAiLegacyFormat: true, …}}
 			if (message.text && message.apiConfiguration) {
 				await provider.upsertProviderProfile(message.text, message.apiConfiguration)
 			}

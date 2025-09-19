@@ -487,6 +487,36 @@ export class ProviderSettingsManager {
 
 	private async load(): Promise<ProviderProfiles> {
 		try {
+			/**
+			 * `{
+					"currentApiConfigName": "cg-manager",
+					"apiConfigs": {
+						"cg-manager": {
+						"openAiBaseUrl": "http://121.40.102.152:9966",
+						"openAiApiKey": "123",
+						"openAiLegacyFormat": true,
+						"openAiModelId": "gpt-4o",
+						"openAiHeaders": {},
+						"apiProvider": "openai",
+						"id": "4bw2jc1vm9o"
+						}
+					},
+					"modeApiConfigs": {
+						"architect": "pi04i7fydf",
+						"code": "pi04i7fydf",
+						"ask": "4bw2jc1vm9o",
+						"debug": "pi04i7fydf",
+						"orchestrator": "pi04i7fydf"
+					},
+					"migrations": {
+						"rateLimitSecondsMigrated": true,
+						"diffSettingsMigrated": true,
+						"openAiHeadersMigrated": true,
+						"consecutiveMistakeLimitMigrated": true,
+						"todoListEnabledMigrated": true
+					}
+				}`
+			 */
 			const content = await this.context.secrets.get(this.secretsKey)
 
 			if (!content) {

@@ -373,6 +373,7 @@ const ApiOptions = ({
 		<div className="flex flex-col gap-3">
 			<div className="flex flex-col gap-1 relative">
 				<div className="flex justify-between items-center">
+					{/* tjl API提供商 */}
 					<label className="block font-medium mb-1">{t("settings:providers.apiProvider")}</label>
 					{docs && (
 						<div className="text-xs text-vscode-descriptionForeground">
@@ -382,6 +383,7 @@ const ApiOptions = ({
 						</div>
 					)}
 				</div>
+				{/* 选择模型的提供商 */}
 				<SearchableSelect
 					value={selectedProvider}
 					onValueChange={(value) => onProviderChange(value as ProviderName)}
