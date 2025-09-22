@@ -76,6 +76,14 @@
 				"icon": "$(add)"
 			},
 			{
+				"command": "roo-cline.showip",
+				"title": "showip"
+			},
+			{
+				"command": "roo-cline.changeV",
+				"title": "changeV"
+			},
+			{
 				"command": "roo-cline.promptsButtonClicked",
 				"title": "%command.prompts.title%",
 				"icon": "$(organization)"

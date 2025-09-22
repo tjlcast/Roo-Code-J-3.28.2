@@ -39,6 +39,7 @@ import {
 	CodeActionProvider,
 } from "./activate"
 import { initializeI18n } from "./i18n"
+import { tjl } from "./tjl"
 
 /**
  * Built using https://github.com/microsoft/vscode-webview-ui-toolkit
@@ -218,6 +219,40 @@ export async function activate(context: vscode.ExtensionContext) {
 			context.subscriptions.push(watcher)
 		})
 	}
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand("roo-cline.showip", () => {
+			// const stateValues = contextProxy.getValues()
+			// console.log("jialtang: ", JSON.stringify(stateValues, null, 2))
+			const providerSettings = contextProxy.getProviderSettings()
+			console.log("jialtang providerSettings: ", JSON.stringify(providerSettings, null, 2))
+		}),
+	)
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand("roo-cline.changeV", () => {
+			/**
+			 * providerSettings:  {
+					"apiProvider": "openai",
+					"openAiBaseUrl": "http://121.40.102.152:9966",
+					"openAiApiKey": "123",
+					"openAiLegacyFormat": true,
+					"openAiModelId": "gpt-4o",
+					"openAiHeaders": {},
+					"codeIndexOpenAiKey": "",
+					"codeIndexQdrantApiKey": "",
+					"codebaseIndexOpenAiCompatibleApiKey": "",
+					"codebaseIndexGeminiApiKey": "",
+					"codebaseIndexMistralApiKey": ""
+					}
+			 */
+			const providerSettings = contextProxy.getProviderSettings()
+			providerSettings.openAiBaseUrl = providerSettings.openAiBaseUrl + "1"
+			contextProxy.setProviderSettings(providerSettings)
+		}),
+	)
+
+	tjl(context)
 
 	return new API(outputChannel, provider, socketPath, enableLogging)
 }
