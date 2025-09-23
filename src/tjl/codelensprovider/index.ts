@@ -2,6 +2,7 @@ import vscode, { ExtensionContext } from "vscode"
 // import { logger } from '../../logger';
 import { getAllFunctionsRange, SyntaxService } from "./syntax"
 import { getCodeActionCommand } from "../../utils/commands"
+import { Package } from "../../shared/package"
 
 /**
  * 说明：
@@ -88,10 +89,10 @@ export default class CodeLensProvider implements vscode.CodeLensProvider {
 		token: vscode.CancellationToken,
 	): Promise<vscode.CodeLens[] | undefined> {
 		console.log("provideCodeLenses")
-		// if (!vscode.workspace.getConfiguration("chatgpt").get<boolean>("methodShortcut")) {
-		// 	// this.logger.debug("methodShortcut disabled")
-		// 	return
-		// }
+		// 判断是否启用函数焦点模式
+		if (!vscode.workspace.getConfiguration(Package.name).get<boolean>("enableCodeActions", true)) {
+			return []
+		}
 
 		const ast = await this.syntaxService.parse(document)
 		if (!ast) {
