@@ -51,6 +51,15 @@
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
+		"icons": {
+			"chatgpt-logo-s": {
+				"description": "chatgpt extension logo small",
+				"default": {
+					"fontPath": "./images/iconfont/iconfont.woff",
+					"fontCharacter": "\\e900"
+				}
+			}
+		},
 		"viewsContainers": {
 			"activitybar": [
 				{
@@ -74,6 +83,14 @@
 				"command": "roo-cline.plusButtonClicked",
 				"title": "%command.newTask.title%",
 				"icon": "$(add)"
+			},
+			{
+				"command": "roo-cline.showip",
+				"title": "showip"
+			},
+			{
+				"command": "roo-cline.changeV",
+				"title": "changeV"
 			},
 			{
 				"command": "roo-cline.promptsButtonClicked",
