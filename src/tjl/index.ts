@@ -1,9 +1,11 @@
+import { ClineProvider } from "../core/webview/ClineProvider"
 import { updateAgentInstance } from "./codeinfill/agent/agent"
 import { TabbyCompletionProvider } from "./codeinfill/TabbyCompletionProvider"
 import CodeLensProvider from "./codelensprovider"
 import vscode from "vscode"
+import { asyncGenerateCommitMessageHandler } from "./git/generate-commit-message"
 
-export function tjl(context: vscode.ExtensionContext) {
+export function tjl(context: vscode.ExtensionContext, provider: ClineProvider) {
 	// 注册函数焦点
 	new CodeLensProvider(context)
 
@@ -13,6 +15,12 @@ export function tjl(context: vscode.ExtensionContext) {
 		vscode.languages.registerInlineCompletionItemProvider({ pattern: "**" }, completionProvider),
 	)
 	updateAgentInstance(context, "http://localhost:9966")
+
+	// 注册git commit gc
+	let disposable = vscode.commands.registerCommand("roo-cline.generateCommitMessage", async () => {
+		await asyncGenerateCommitMessageHandler(provider)
+	})
+	context.subscriptions.push(disposable)
 
 	// done.
 }

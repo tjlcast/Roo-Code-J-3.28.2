@@ -191,6 +191,11 @@
 				"command": "roo-cline.acceptInput",
 				"title": "%command.acceptInput.title%",
 				"category": "%configuration.title%"
+			},
+			{
+				"command": "roo-cline.generateCommitMessage",
+				"title": "Roo: Generate commit message",
+				"icon": "images/openai-logo.svg"
 			}
 		],
 		"menus": {
@@ -316,6 +321,13 @@
 					"command": "roo-cline.popoutButtonClicked",
 					"group": "overflow@4",
 					"when": "activeWebviewPanelId == roo-cline.TabPanelProvider"
+				}
+			],
+			"scm/title": [
+				{
+					"command": "roo-cline.generateCommitMessage",
+					"group": "navigation",
+					"when": "scmProvider == git"
 				}
 			]
 		},
