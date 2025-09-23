@@ -51,6 +51,15 @@
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
+		"icons": {
+			"chatgpt-logo-s": {
+				"description": "chatgpt extension logo small",
+				"default": {
+					"fontPath": "./images/iconfont/iconfont.woff",
+					"fontCharacter": "\\e900"
+				}
+			}
+		},
 		"viewsContainers": {
 			"activitybar": [
 				{

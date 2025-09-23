@@ -1,6 +1,7 @@
 import vscode, { ExtensionContext } from "vscode"
 // import { logger } from '../../logger';
 import { getAllFunctionsRange, SyntaxService } from "./syntax"
+import { getCodeActionCommand } from "../../utils/commands"
 
 /**
  * 说明：
@@ -9,10 +10,9 @@ import { getAllFunctionsRange, SyntaxService } from "./syntax"
  * enable 控制是否在函数头部显示
  */
 export const OP_ITEMS = [
-	{ label: "explain", value: "vscode-chatgpt.explain", enable: true },
-	{ label: "findBugs", value: "vscode-chatgpt.findBugs", enable: true },
-	{ label: "addComments", value: "vscode-chatgpt.addComments", enable: true },
-	{ label: "addTests", value: "vscode-chatgpt.addTests", enable: true },
+	{ label: "Explain with Roo Code", value: getCodeActionCommand("explainCode"), enable: true },
+	{ label: "Improve with Roo Code", value: getCodeActionCommand("improveCode"), enable: true },
+	{ label: "Add to Roo Code", value: getCodeActionCommand("addToContext"), enable: true },
 ]
 
 export function createFullLineRange(row: number) {
@@ -83,29 +83,6 @@ export default class CodeLensProvider implements vscode.CodeLensProvider {
 		console.log("Finished installation codelensProvider")
 	}
 
-	// async provideCodeLenses(
-	//   document: vscode.TextDocument,
-	//   token: vscode.CancellationToken,
-	// ): Promise<vscode.CodeLens[] | undefined> {
-	//   if (!vscode.workspace.getConfiguration('chatgpt').get<boolean>('methodShortcut')) {
-	//     this.logger.debug('methodShortcut disabled');
-	//     return;
-	//   }
-	//   const ast = await this.syntaxService.parse(document);
-	//   if (!ast) {
-	//     this.logger.debug('Syntax tree not found');
-	//     return;
-	//   }
-	//   let lenses = [...getAllFunctionsRange(ast)].flatMap((range) => this.buildCodeLense(range));
-	//   this.logger.debug('CodeLensProvider lenses', lenses);
-
-	//   const refLenses = await this.provideCodeLenses1(document, token);
-	//   if (refLenses) {
-	//     lenses = [...lenses, ...refLenses];
-	//   }
-	//   return lenses;
-	// }
-
 	async provideCodeLenses(
 		document: vscode.TextDocument,
 		token: vscode.CancellationToken,
@@ -131,28 +108,11 @@ export default class CodeLensProvider implements vscode.CodeLensProvider {
 			// 添加显示操作列表的 CodeLens
 			lenses.push(
 				new vscode.CodeLens(functionHead, {
-					// title: "$(chatgpt-logo-s)",
-					title: "tjl",
+					title: "$(chatgpt-logo-s)",
 					command: this._showActionsCommand,
 					arguments: [range],
 				}),
 			)
-
-			// // ② 引用计数 CodeLens
-			// const references: vscode.Location[] =
-			// 	(await vscode.commands.executeCommand("vscode.executeReferenceProvider", document.uri, range.start)) ??
-			// 	[]
-
-			// const filteredRefs = references.filter((loc) => !loc.range.isEqual(range))
-			// const count = filteredRefs.length
-			// const title = `$(references) ${count} reference${count === 1 ? "" : "s"}`
-
-			// lenses.push(
-			// 	new vscode.CodeLens(functionHead, {
-			// 		title,
-			// 		command: "", // 无 command，只显示信息
-			// 	}),
-			// )
 		}
 
 		return lenses

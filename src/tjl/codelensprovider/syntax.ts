@@ -1,6 +1,6 @@
 import path from "path"
 import vscode, { TextDocument } from "vscode"
-import { Parser, Language, Tree } from "web-tree-sitter"
+import { Parser as ParserT, Language as LanguageT, Tree as TreeT } from "web-tree-sitter"
 // import { logger } from '../../logger';
 
 export const SyntaxLoaders = {
@@ -35,10 +35,10 @@ export const isSupportDocument = (document: TextDocument): boolean => {
 export class SyntaxService {
 	// private readonly logger = logger();
 
-	cacheParsers: Map<SupportsLanguages, Parser>
+	cacheParsers: Map<SupportsLanguages, ParserT>
 
 	constructor() {
-		this.cacheParsers = new Map<SupportsLanguages, Parser>()
+		this.cacheParsers = new Map<SupportsLanguages, ParserT>()
 	}
 
 	async getParser(lang: SupportsLanguages) {
@@ -52,6 +52,7 @@ export class SyntaxService {
 	}
 
 	async initParser(lang: SupportsLanguages) {
+		const { Parser, Language } = require("web-tree-sitter")
 		try {
 			await Parser.init()
 			const parser = new Parser()
@@ -77,7 +78,7 @@ export class SyntaxService {
 }
 
 function findNodesByType(
-	node: Tree["rootNode"],
+	node: TreeT["rootNode"],
 	nodeTypes: string[] = [],
 	methods: vscode.Range[] = [],
 ): vscode.Range[] {
@@ -95,7 +96,7 @@ function findNodesByType(
 	return methods
 }
 
-export function getAllFunctionsRange(ast: Tree): vscode.Range[] {
+export function getAllFunctionsRange(ast: TreeT): vscode.Range[] {
 	return findNodesByType(
 		ast.rootNode,
 		[

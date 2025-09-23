@@ -158,6 +158,20 @@ export function copyWasms(srcDir: string, distDir: string): void {
 	})
 
 	console.log(`[copyWasms] Copied ${wasmFiles.length} tree-sitter language wasms to ${distDir}`)
+
+	// Copy resources directory
+	const resourcesDir = path.join(srcDir, "resources")
+	if (fs.existsSync(resourcesDir)) {
+		const destResourcesDir = path.join(distDir, "resources")
+		if (fs.existsSync(destResourcesDir)) {
+			rmDir(destResourcesDir)
+		}
+		fs.mkdirSync(destResourcesDir, { recursive: true })
+		const count = copyDir(resourcesDir, destResourcesDir, 0)
+		console.log(`[copyWasms] Copied ${count} resource files to ${destResourcesDir}`)
+	} else {
+		console.warn(`[copyWasms] Resources directory not found: ${resourcesDir}`)
+	}
 }
 
 export function copyLocales(srcDir: string, distDir: string): void {
