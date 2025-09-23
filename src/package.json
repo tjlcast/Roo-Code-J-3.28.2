@@ -399,6 +399,11 @@
 					"default": true,
 					"description": "%settings.enableCodeActions.description%"
 				},
+				"roo-cline.enableCodeInfill": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable code infill"
+				},
 				"roo-cline.autoImportSettingsPath": {
 					"type": "string",
 					"default": "",
@@ -413,6 +418,7 @@
 		}
 	},
 	"scripts": {
+		"openapi-codegen": "openapi-typescript ./src/tjl/codeinfill/openapi/tabby.json -o ./src/tjl/codeinfill/types/FtabbyApi.d.ts",
 		"lint": "eslint . --ext=ts --max-warnings=0",
 		"check-types": "tsc --noEmit",
 		"pretest": "turbo run bundle --cwd ..",
@@ -498,7 +504,15 @@
 		"web-tree-sitter": "^0.25.6",
 		"workerpool": "^9.2.0",
 		"yaml": "^2.8.0",
-		"zod": "^3.25.61"
+		"zod": "^3.25.61",
+		"_": "_",
+		"stats-logscale": "^1.0.9",
+		"openapi-fetch": "^0.7.6",
+		"lru-cache": "^9.1.1",
+		"object-hash": "^3.0.0",
+		"file-stream-rotator": "^1.0.0",
+		"pino": "^8.14.1",
+		"fast-levenshtein": "^3.0.0"
 	},
 	"devDependencies": {
 		"@roo-code/build": "workspace:^",
@@ -534,6 +548,9 @@
 		"tsx": "^4.19.3",
 		"typescript": "5.8.3",
 		"vitest": "^3.2.3",
-		"zod-to-ts": "^1.2.0"
+		"zod-to-ts": "^1.2.0",
+		"_": "_",
+		"@types/object-hash": "^3.0.0",
+		"@types/fast-levenshtein": "^0.0.4"
 	}
 }
