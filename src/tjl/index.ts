@@ -4,6 +4,7 @@ import { TabbyCompletionProvider } from "./codeinfill/TabbyCompletionProvider"
 import CodeLensProvider from "./codelensprovider"
 import vscode from "vscode"
 import { asyncGenerateCommitMessageHandler } from "./git/generate-commit-message"
+import { fileMapActivate } from "./filemap/file-map"
 
 export function tjl(context: vscode.ExtensionContext, provider: ClineProvider) {
 	// 注册函数焦点
@@ -21,6 +22,9 @@ export function tjl(context: vscode.ExtensionContext, provider: ClineProvider) {
 		await asyncGenerateCommitMessageHandler(provider)
 	})
 	context.subscriptions.push(disposable)
+
+	// 注册file map功能
+	fileMapActivate(context)
 
 	// done.
 }

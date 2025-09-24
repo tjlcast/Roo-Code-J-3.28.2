@@ -80,6 +80,10 @@
 		},
 		"commands": [
 			{
+				"command": "roo-cline.generateFileMap",
+				"title": "Generate Filemap[Roo]"
+			},
+			{
 				"command": "roo-cline.plusButtonClicked",
 				"title": "%command.newTask.title%",
 				"icon": "$(add)"
@@ -199,6 +203,13 @@
 			}
 		],
 		"menus": {
+			"explorer/context": [
+				{
+					"command": "roo-cline.generateFileMap",
+					"when": "explorerResourceIsFolder || resourceLangId",
+					"group": "navigation"
+				}
+			],
 			"editor/context": [
 				{
 					"submenu": "roo-cline.contextMenu",
