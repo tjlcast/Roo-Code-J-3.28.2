@@ -653,6 +653,9 @@ importers:
       file-stream-rotator:
         specifier: ^1.0.0
         version: 1.0.0
+      form-data:
+        specifier: '>=4.0.4'
+        version: 4.0.4
       fzf:
         specifier: ^0.5.2
         version: 0.5.2
@@ -689,6 +692,9 @@ importers:
       node-cache:
         specifier: ^5.1.2
         version: 5.1.2
+      node-fetch:
+        specifier: ^3.3.2
+        version: 3.3.2
       node-ipc:
         specifier: ^12.0.0
         version: 12.0.0
@@ -14581,8 +14587,7 @@ snapshots:
       d3: 7.9.0
       lodash-es: 4.17.21
 
-  data-uri-to-buffer@4.0.1:
-    optional: true
+  data-uri-to-buffer@4.0.1: {}
 
   data-uri-to-buffer@6.0.2: {}
 
@@ -15447,7 +15452,6 @@ snapshots:
     dependencies:
       node-domexception: 1.0.0
       web-streams-polyfill: 3.3.3
-    optional: true
 
   fflate@0.4.8: {}
 
@@ -15539,7 +15543,6 @@ snapshots:
   formdata-polyfill@4.0.10:
     dependencies:
       fetch-blob: 3.2.0
-    optional: true
 
   forwarded@0.2.0: {}
 
@@ -17526,7 +17529,6 @@ snapshots:
       data-uri-to-buffer: 4.0.1
       fetch-blob: 3.2.0
       formdata-polyfill: 4.0.10
-    optional: true
 
   node-ipc@12.0.0:
     dependencies:
@@ -20108,8 +20110,7 @@ snapshots:
 
   web-namespaces@2.0.1: {}
 
-  web-streams-polyfill@3.3.3:
-    optional: true
+  web-streams-polyfill@3.3.3: {}
 
   web-streams-polyfill@4.0.0-beta.3: {}
 
