@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: var(--vscode-font-family);
+        background-color: var(--vscode-editor-background);
+        color: var(--vscode-editor-foreground);
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      .editor-container,
+      .preview-container {
+        height: 100%;
+        padding: 10px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .editor-container {
+        width: 50%;
+        border-right: 1px solid var(--vscode-editorWidget-border);
+      }
+
+      .preview-container {
+        width: 50%;
+        overflow: auto;
+        /* 添加滚动功能 */
+      }
+
+      .resizer {
+        width: 5px;
+        cursor: col-resize;
+        background-color: var(--vscode-editorWidget-border);
+      }
+
+      textarea {
+        flex: 1;
+        width: 100%;
+        background-color: var(--vscode-editor-background);
+        color: var(--vscode-editor-foreground);
+        border: 1px solid var(--vscode-editorWidget-border);
+        font-family: var(--vscode-font-family);
+        font-size: var(--vscode-editor-font-size);
+        resize: none;
+        padding: 8px;
+      }
+
+      .mermaid {
+        flex: none;
+        /* 禁用自动拉伸 */
+        display: inline-block;
+        /* 允许超出后滚动 */
+        min-width: 100%;
+        min-height: 100%;
+        background-color: transparent !important;
+        border: 1px solid var(--vscode-editorWidget-border);
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      button {
+        padding: 6px 12px;
+        background-color: var(--vscode-button-background);
+        color: var(--vscode-button-foreground);
+        border: none;
+        border-radius: 2px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background-color: var(--vscode-button-hoverBackground);
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="editor-container" id="editorContainer">
+      <div class="toolbar">
+        <button id="update-btn">Update</button>
+        <button id="save-png">Save as PNG</button>
+        <button id="save-svg">Save as SVG</button>
+      </div>
+      <textarea id="mermaid-code"><!-- MERMAIRD_CODE_PLACEHOLDER --></textarea>
+    </div>
+
+    <div class="resizer" id="resizer"></div>
+
+    <div class="preview-container" id="previewContainer">
+      <div class="mermaid" id="mermaid-diagram"></div>
+    </div>
+
+    <script src="MERMAIRD_JS_URI_PLACEHOLDER"></script>
+    <script>
+      (function () {
+        const vscode = acquireVsCodeApi();
+        const mermaidCode = document.getElementById('mermaid-code');
+        const diagramContainer = document.getElementById('mermaid-diagram');
+        const updateBtn = document.getElementById('update-btn');
+        const savePngBtn = document.getElementById('save-png');
+        const saveSvgBtn = document.getElementById('save-svg');
+
+        mermaidCode.addEventListener('keydown', function (e) {
+          if (e.key === 'Tab') {
+            e.preventDefault();
+            const start = this.selectionStart;
+            const end = this.selectionEnd;
+            const value = this.value;
+            const spaces = '    ';
+            this.value = value.substring(0, start) + spaces + value.substring(end);
+            this.selectionStart = this.selectionEnd = start + spaces.length;
+          }
+        });
+
+        let currentSvg = null;
+
+        function renderDiagram() {
+          const code = mermaidCode.value;
+          Array.from(document.querySelectorAll('[id^="dmermaid-"]')).forEach((el) => el.remove());
+
+          mermaid.initialize({
+            startOnLoad: false,
+            theme: document.body.classList.contains('vscode-dark') ? 'dark' : 'default',
+            securityLevel: 'loose',
+          });
+
+          const renderId = 'mermaid-' + Math.floor(Math.random() * 1000000);
+
+          mermaid
+            .render(renderId, code)
+            .then(({ svg }) => {
+              currentSvg = svg;
+              diagramContainer.innerHTML = svg;
+              vscode.postMessage({
+                command: 'vscode-chatgpt-plugin-cgp-mermaid-update',
+                text: code,
+              });
+            })
+            .catch((error) => {
+              const existingError = diagramContainer.querySelector('.mermaid-error');
+              const errorMessage = `Error: ${error.message}`;
+              if (!existingError || existingError.textContent !== errorMessage) {
+                diagramContainer.innerHTML = `<div class="mermaid-error" style="color: var(--vscode-errorForeground)">${errorMessage}</div>`;
+              }
+            });
+        }
+
+        function downloadSVG() {
+          if (!currentSvg) return;
+          vscode.postMessage({
+            command: 'vscode-chatgpt-plugin-cgp-mermaid-save',
+            type: 'svg',
+            content: currentSvg,
+          });
+        }
+
+        function downloadPNG() {
+          if (!currentSvg) return;
+
+          const svgElement = document.querySelector('#mermaid-diagram svg');
+          if (!svgElement) return;
+
+          const clonedSvg = svgElement.cloneNode(true);
+          const bbox = svgElement.getBBox();
+          const svgWidth = bbox.width + bbox.x;
+          const svgHeight = bbox.height + bbox.y;
+
+          clonedSvg.setAttribute('width', svgWidth);
+          clonedSvg.setAttribute('height', svgHeight);
+          if (!clonedSvg.hasAttribute('viewBox')) {
+            clonedSvg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+          }
+
+          const canvas = document.createElement('canvas');
+          const scale = 3;
+          canvas.width = svgWidth * scale;
+          canvas.height = svgHeight * scale;
+
+          const ctx = canvas.getContext('2d');
+          const bgColor = getComputedStyle(document.body).backgroundColor || 'white';
+          ctx.fillStyle = bgColor;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          const svgData = new XMLSerializer().serializeToString(clonedSvg);
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+
+          img.onload = function () {
+            try {
+              ctx.imageSmoothingQuality = 'high';
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+              canvas.toBlob(
+                (blob) => {
+                  if (blob) {
+                    blob.arrayBuffer().then((arrayBuffer) => {
+                      vscode.postMessage({
+                        command: 'vscode-chatgpt-plugin-cgp-mermaid-save',
+                        type: 'png',
+                        content: Array.from(new Uint8Array(arrayBuffer)),
+                      });
+                    });
+                  }
+                },
+                'image/png',
+                1.0,
+              );
+            } catch (error) {
+              console.error('PNG rendering error:', error);
+            }
+          };
+
+          img.onerror = function () {
+            console.error('Failed to load SVG image');
+          };
+
+          img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgData);
+        }
+
+        updateBtn.addEventListener('click', renderDiagram);
+        saveSvgBtn.addEventListener('click', downloadSVG);
+        savePngBtn.addEventListener('click', downloadPNG);
+        renderDiagram();
+
+        const resizer = document.getElementById('resizer');
+        const editorContainer = document.getElementById('editorContainer');
+        const previewContainer = document.getElementById('previewContainer');
+
+        let isDragging = false;
+
+        resizer.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          isDragging = true;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+          if (!isDragging) return;
+
+          const totalWidth = window.innerWidth;
+          const leftWidth = e.clientX;
+          const rightWidth = totalWidth - leftWidth - resizer.offsetWidth;
+
+          editorContainer.style.width = `${leftWidth}px`;
+          previewContainer.style.width = `${rightWidth}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+          isDragging = false;
+        });
+      })();
+    </script>
+  </body>
+</html>

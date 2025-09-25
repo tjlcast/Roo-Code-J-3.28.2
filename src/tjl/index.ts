@@ -6,6 +6,7 @@ import vscode from "vscode"
 import { asyncGenerateCommitMessageHandler } from "./git/generate-commit-message"
 import { fileMapActivate } from "./filemap/file-map"
 import { buildCurlTool } from "./curlcodelensprovider/curl-codelens-provider"
+import { buildMmdTool } from "./mmdcodelensprovider/mmd-codelens-provider"
 
 export function tjl(context: vscode.ExtensionContext, provider: ClineProvider) {
 	// 注册函数焦点
@@ -29,6 +30,9 @@ export function tjl(context: vscode.ExtensionContext, provider: ClineProvider) {
 
 	// 注册curl codelens
 	buildCurlTool(context)
+
+	// 注册mermaid codelens
+	buildMmdTool(context)
 
 	// done.
 }
