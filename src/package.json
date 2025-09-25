@@ -80,6 +80,11 @@
 		},
 		"commands": [
 			{
+				"command": "roo.tools.command.markdown",
+				"title": "Markdown[Roo]",
+				"category": "Markdown Preview"
+			},
+			{
 				"command": "roo-cline.generateFileMap",
 				"title": "Generate Filemap[Roo]"
 			},

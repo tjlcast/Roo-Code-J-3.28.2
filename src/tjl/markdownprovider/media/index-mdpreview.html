@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Markdown Live Preview</title>
+    <link rel="stylesheet" href="highlight.min.css" />
+    <script src="marked.min.js"></script>
+    <script src="highlight.min.js"></script>
+    <script src="html2pdf.bundle.min.js"></script>
+    <style>
+      :root {
+        --bg-color: #f8f9fa;
+        --editor-bg: #ffffff;
+        --preview-bg: #ffffff;
+        --toolbar-bg: #f1f3f5;
+        --border-color: #e1e4e8;
+        --primary-color: #1a73e8;
+        --primary-hover: #0d62c9;
+        --text-color: #24292e;
+        --text-secondary: #6a737d;
+        --splitter-color: #e1e4e8;
+        --splitter-hover: #d1d5da;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --radius: 6px;
+        --transition: all 0.2s ease;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg-color: #1e1e1e;
+          --editor-bg: #252526;
+          --preview-bg: #1e1e1e;
+          --toolbar-bg: #2d2d2d;
+          --border-color: #3c3c3c;
+          --primary-color: #0a84ff;
+          --primary-hover: #0070e0;
+          --text-color: #e1e1e1;
+          --text-secondary: #8b949e;
+          --splitter-color: #3c3c3c;
+          --splitter-hover: #4f4f4f;
+          --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+          sans-serif;
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+      }
+
+      #editor-container,
+      #preview-container {
+        flex: 1;
+        height: 100%;
+        overflow: auto;
+        padding: 0;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        background-color: var(--editor-bg);
+      }
+
+      #preview-container {
+        background-color: var(--preview-bg);
+      }
+
+      #editor {
+        width: 100%;
+        flex: 1;
+        border: none;
+        resize: none;
+        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        font-size: 14px;
+        line-height: 1.6;
+        outline: none;
+        background-color: var(--editor-bg);
+        color: var(--text-color);
+        padding: 16px;
+        tab-size: 4;
+      }
+
+      #preview {
+        line-height: 1.6;
+        padding: 16px;
+        flex: 1;
+        overflow-y: auto;
+      }
+
+      .splitter {
+        width: 8px;
+        background-color: var(--splitter-color);
+        cursor: col-resize;
+        transition: var(--transition);
+        position: relative;
+      }
+
+      .splitter:hover {
+        background-color: var(--splitter-hover);
+      }
+
+      .splitter::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 1px;
+        right: 1px;
+        height: 40px;
+        transform: translateY(-50%);
+        background-color: var(--border-color);
+        border-radius: 3px;
+      }
+
+      .toolbar {
+        background-color: var(--toolbar-bg);
+        padding: 8px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border-color);
+        box-shadow: var(--shadow);
+        z-index: 1;
+      }
+
+      .toolbar-title {
+        font-weight: 500;
+        font-size: 13px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .toolbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .btn {
+        background: none;
+        border: 1px solid var(--border-color);
+        padding: 6px 12px;
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-size: 13px;
+        color: var(--text-color);
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .btn:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+
+      .btn.active {
+        background-color: rgba(0, 0, 0, 0.1);
+      }
+
+      .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+      }
+
+      .btn-primary:hover {
+        background-color: var(--primary-hover);
+        border-color: var(--primary-hover);
+      }
+
+      .btn-primary.saving {
+        background-color: var(--text-secondary);
+        border-color: var(--text-secondary);
+      }
+
+      .status {
+        color: var(--text-secondary);
+        font-size: 12px;
+        margin-left: 8px;
+        display: inline-block;
+        min-width: 100px;
+      }
+
+      /* Markdown styling */
+      #preview h1,
+      #preview h2,
+      #preview h3,
+      #preview h4,
+      #preview h5,
+      #preview h6 {
+        margin-top: 24px;
+        margin-bottom: 16px;
+        font-weight: 600;
+        line-height: 1.25;
+      }
+
+      #preview h1 {
+        padding-bottom: 0.3em;
+        font-size: 2em;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      #preview h2 {
+        padding-bottom: 0.3em;
+        font-size: 1.5em;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      #preview p {
+        margin-top: 0;
+        margin-bottom: 16px;
+      }
+
+      #preview a {
+        color: var(--primary-color);
+        text-decoration: none;
+      }
+
+      #preview a:hover {
+        text-decoration: underline;
+      }
+
+      #preview img {
+        max-width: 100%;
+        box-sizing: content-box;
+        background-color: var(--editor-bg);
+      }
+
+      #preview pre {
+        background-color: rgba(0, 0, 0, 0.05);
+        border-radius: var(--radius);
+        padding: 16px;
+        overflow: auto;
+        margin-bottom: 16px;
+      }
+
+      #preview code {
+        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        font-size: 85%;
+        background-color: rgba(0, 0, 0, 0.05);
+        border-radius: 3px;
+        padding: 0.2em 0.4em;
+      }
+
+      #preview pre code {
+        background-color: transparent;
+        padding: 0;
+      }
+
+      #preview blockquote {
+        border-left: 4px solid var(--primary-color);
+        color: var(--text-secondary);
+        padding: 0 1em;
+        margin: 0 0 16px 0;
+      }
+
+      #preview table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-bottom: 16px;
+        display: block;
+        overflow: auto;
+      }
+
+      #preview th,
+      #preview td {
+        border: 1px solid var(--border-color);
+        padding: 6px 13px;
+      }
+
+      #preview th {
+        background-color: rgba(0, 0, 0, 0.05);
+        font-weight: 600;
+      }
+
+      #preview tr:nth-child(even) {
+        background-color: rgba(0, 0, 0, 0.02);
+      }
+
+      #preview ul,
+      #preview ol {
+        padding-left: 2em;
+        margin-bottom: 16px;
+      }
+
+      #preview li {
+        margin-bottom: 0.25em;
+      }
+
+      #preview hr {
+        height: 0.25em;
+        padding: 0;
+        margin: 24px 0;
+        background-color: var(--border-color);
+        border: 0;
+      }
+
+      /* TOC styling */
+      #preview .toc {
+        background-color: rgba(0, 0, 0, 0.03);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius);
+        padding: 16px;
+        margin-bottom: 16px;
+        font-size: 0.9em;
+      }
+
+      #preview .toc-title {
+        font-weight: 600;
+        margin-top: 0;
+        margin-bottom: 12px;
+        font-size: 1.1em;
+      }
+
+      #preview .toc ul {
+        list-style-type: none;
+        padding-left: 0;
+        margin: 0;
+      }
+
+      #preview .toc li {
+        margin-bottom: 6px;
+        line-height: 1.4;
+      }
+
+      #preview .toc a {
+        color: var(--text-color);
+        text-decoration: none;
+        display: inline-block;
+        padding: 2px 0;
+      }
+
+      #preview .toc a:hover {
+        color: var(--primary-color);
+        text-decoration: underline;
+      }
+
+      #preview .toc ul ul {
+        padding-left: 1em;
+        margin-top: 6px;
+      }
+
+      /* Scrollbar styling */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--text-secondary);
+      }
+
+      /* Hidden state */
+      .hidden {
+        display: none !important;
+      }
+
+      /* Responsive layout */
+      @media (max-width: 768px) {
+        body {
+          flex-direction: column;
+        }
+
+        .splitter {
+          width: 100%;
+          height: 8px;
+        }
+
+        .splitter::before {
+          top: 1px;
+          left: 50%;
+          width: 40px;
+          height: 1px;
+          transform: translateX(-50%);
+        }
+
+        #editor-container,
+        #preview-container {
+          width: 100% !important;
+          height: 50% !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="editor-container">
+      <div class="toolbar">
+        <span class="toolbar-title">编辑模式</span>
+        <div class="toolbar-actions">
+          <!-- 在保存按钮前添加导出PDF按钮 -->
+          <button id="export-pdf" class="btn">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            导出PDF
+          </button>
+          <button id="toggle-mode" class="btn">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+            预览模式
+          </button>
+          <button id="save-btn" class="btn btn-primary">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            保存
+          </button>
+          <span id="save-status" class="status"></span>
+        </div>
+      </div>
+      <textarea id="editor" spellcheck="false"></textarea>
+    </div>
+    <div class="splitter" id="splitter"></div>
+    <div id="preview-container">
+      <div class="toolbar">
+        <span class="toolbar-title">预览模式</span>
+        <div class="toolbar-actions">
+          <button id="toggle-mode" class="btn">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+            编辑模式
+          </button>
+        </div>
+      </div>
+      <div id="preview"></div>
+    </div>
+
+    <script>
+      // 配置marked
+      marked.setOptions({
+        renderer: new marked.Renderer(),
+        highlight: function (code, _lang) {
+          return hljs.highlightAuto(code).value;
+        },
+        langPrefix: 'hljs language-',
+        pedantic: false,
+        gfm: true,
+        breaks: true,
+        sanitize: false,
+        smartypants: false,
+        xhtml: false,
+      });
+
+      // 获取VS Code API
+      const vscode = acquireVsCodeApi();
+
+      // 初始化变量
+      let markdownContent = '';
+      let isSplitView = true;
+      let isDragging = false;
+      let isSyncing = false;
+
+      // 获取DOM元素
+      const editor = document.getElementById('editor');
+      const preview = document.getElementById('preview');
+      const editorContainer = document.getElementById('editor-container');
+      const previewContainer = document.getElementById('preview-container');
+      const splitter = document.getElementById('splitter');
+      const toggleButtons = document.querySelectorAll('#toggle-mode');
+      const saveBtn = document.getElementById('save-btn');
+      const saveStatus = document.getElementById('save-status');
+
+      // 处理Tab键输入为4个空格
+      editor.addEventListener('keydown', function (e) {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+
+          // 获取当前光标位置
+          const start = this.selectionStart;
+          const end = this.selectionEnd;
+
+          // 在光标位置插入4个空格
+          this.value = this.value.substring(0, start) + '    ' + this.value.substring(end);
+
+          // 移动光标到插入空格之后
+          this.selectionStart = this.selectionEnd = start + 4;
+
+          // 触发input事件以更新预览
+          const event = new Event('input', { bubbles: true });
+          this.dispatchEvent(event);
+        }
+      });
+
+      // 保存函数
+      function saveContent() {
+        saveBtn.classList.add('saving');
+        saveBtn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        保存中...
+      `;
+        saveStatus.textContent = '保存中...';
+
+        vscode.postMessage({
+          command: 'save',
+          text: editor.value,
+        });
+      }
+
+      // 点击保存按钮
+      saveBtn.addEventListener('click', saveContent);
+
+      // Ctrl+S 快捷键保存
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+          e.preventDefault();
+          saveContent();
+        }
+      });
+
+      // 初始化拖拽分割线
+      splitter.addEventListener('mousedown', () => {
+        isDragging = true;
+        document.body.style.cursor = 'col-resize';
+        splitter.style.backgroundColor = 'var(--splitter-hover)';
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+
+        const containerWidth = document.body.clientWidth;
+        const editorWidth = e.clientX;
+        const editorPercent = (editorWidth / containerWidth) * 100;
+
+        editorContainer.style.width = `calc(${editorPercent}% - 4px)`;
+        previewContainer.style.width = `calc(${100 - editorPercent}% - 4px)`;
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (isDragging) {
+          isDragging = false;
+          document.body.style.cursor = '';
+          splitter.style.backgroundColor = 'var(--splitter-color)';
+        }
+      });
+
+      // 切换视图模式
+      toggleButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          isSplitView = !isSplitView;
+
+          if (isSplitView) {
+            editorContainer.classList.remove('hidden');
+            previewContainer.classList.remove('hidden');
+            splitter.classList.remove('hidden');
+            toggleButtons.forEach((btn) => {
+              btn.innerHTML = `
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+              预览模式
+            `;
+            });
+          } else {
+            editorContainer.classList.add('hidden');
+            previewContainer.classList.remove('hidden');
+            splitter.classList.add('hidden');
+            toggleButtons.forEach((btn) => {
+              btn.innerHTML = `
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+              编辑模式
+            `;
+            });
+          }
+        });
+      });
+
+      // 生成TOC函数
+      function generateTOC(content) {
+        const tocRegex = /\[TOC\]|\[toc\]/g;
+        if (!tocRegex.test(content)) return content;
+
+        const headings = [];
+        const lines = content.split('\n');
+
+        // 收集所有标题
+        lines.forEach((line) => {
+          const headingMatch = line.match(/^(#{1,6})\s+(.*)/);
+          if (headingMatch) {
+            const level = headingMatch[1].length;
+            const text = headingMatch[2].trim();
+            const id = text
+              .toLowerCase()
+              .replace(/[^\w]+/g, '-')
+              .replace(/^-|-$/g, '');
+            headings.push({ level, text, id });
+          }
+        });
+
+        if (headings.length === 0) {
+          return content.replace(tocRegex, '<div class="toc"><p>No headings found</p></div>');
+        }
+
+        // 生成TOC HTML
+        let tocHtml = '<div class="toc">\n<h3 class="toc-title">Table of Contents</h3>\n<ul>\n';
+        let lastLevel = 1;
+
+        headings.forEach((heading) => {
+          // 处理层级关系
+          if (heading.level > lastLevel) {
+            tocHtml += '<ul>\n'.repeat(heading.level - lastLevel);
+          } else if (heading.level < lastLevel) {
+            tocHtml += '</ul>\n'.repeat(lastLevel - heading.level);
+          }
+
+          tocHtml += `<li><a href="#${heading.id}">${heading.text}</a></li>\n`;
+          lastLevel = heading.level;
+        });
+
+        // 关闭所有未闭合的ul标签
+        tocHtml += '</ul>\n'.repeat(lastLevel - 1);
+        tocHtml += '</div>\n';
+
+        // 替换[TOC]标签
+        return content.replace(tocRegex, tocHtml);
+      }
+
+      // 只在内容实际变化时更新预览
+      let lastContent = '';
+
+      // 更新预览并同步回VS Code
+      function updatePreview() {
+        const currentContent = editor.value;
+        if (currentContent === lastContent) return;
+
+        // 保存滚动位置
+        const scrollTop = editor.scrollTop;
+
+        lastContent = currentContent;
+
+        // 处理TOC标签
+        const contentWithTOC = generateTOC(currentContent);
+        preview.innerHTML = marked.parse(contentWithTOC);
+        hljs.highlightAll();
+
+        // 恢复滚动位置
+        editor.scrollTop = scrollTop;
+
+        if (!isSyncing) {
+          vscode.postMessage({
+            command: 'updateContent',
+            text: currentContent,
+          });
+        }
+      }
+
+      // 添加防抖函数
+      function debounce(func, wait) {
+        let timeout;
+        return function () {
+          const context = this;
+          const args = arguments;
+          clearTimeout(timeout);
+          timeout = setTimeout(() => {
+            func.apply(context, args);
+          }, wait);
+        };
+      }
+
+      // 监听编辑器变化
+      editor.addEventListener('input', debounce(updatePreview, 1050));
+
+      // 监听VS Code消息
+      window.addEventListener('message', (event) => {
+        const message = event.data;
+
+        switch (message.command) {
+          case 'init':
+            isSyncing = true;
+            editor.value = message.text;
+            updatePreview();
+            isSyncing = false;
+            break;
+
+          case 'saveResult':
+            saveBtn.classList.remove('saving');
+            saveBtn.innerHTML = `
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+              <polyline points="17 21 17 13 7 13 7 21"></polyline>
+              <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            保存
+          `;
+            if (message.success) {
+              saveStatus.textContent = '保存成功';
+              setTimeout(() => (saveStatus.textContent = ''), 2000);
+            } else {
+              saveStatus.textContent = '保存失败: ' + (message.error || '未知错误');
+            }
+            break;
+
+          case 'update':
+            // 来自VS Code的更新，避免循环同步
+            if (editor.value !== message.text) {
+              isSyncing = true;
+              editor.value = message.text;
+              updatePreview();
+              isSyncing = false;
+            }
+            break;
+        }
+      });
+
+      // 初始化时请求内容
+      vscode.postMessage({ command: 'ready' });
+
+      // 添加PDF导出功能
+      const exportPdfBtn = document.getElementById('export-pdf');
+
+      exportPdfBtn.addEventListener('click', () => {
+        const element = document.getElementById('preview');
+
+        // 克隆元素以避免影响原始预览
+        const elementToPrint = element.cloneNode(true);
+
+        // 添加一些样式来优化打印
+        const printStyles = document.createElement('style');
+        printStyles.innerHTML = `
+    @media print {
+      /* 防止内容被切断 */
+      .avoid-break {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      /* 添加一些边距 */
+      body {
+        padding: 20px;
+      }
+    }
+  `;
+        elementToPrint.appendChild(printStyles);
+
+        // 为所有图片、表格、代码块等添加避免分页的类
+        const elementsToProtect = elementToPrint.querySelectorAll(
+          'img, table, pre, blockquote, .toc',
+        );
+        elementsToProtect.forEach((el) => {
+          el.classList.add('avoid-break');
+        });
+
+        const opt = {
+          margin: [10, 10, 10, 10], // 上下左右边距
+          filename: 'markdown-export.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: {
+            scale: 2,
+            logging: false,
+            useCORS: true,
+            allowTaint: true,
+          },
+          jsPDF: {
+            unit: 'mm',
+            format: 'a4',
+            orientation: 'portrait',
+            // 设置自动分页为false
+            putOnlyUsedFonts: true,
+            compress: true,
+          },
+          // 页面分割选项
+          pagebreak: {
+            mode: ['avoid-all', 'css', 'legacy'], // 尽可能避免分页
+            before: '.page-break-before', // 可以在需要分页的地方添加这个类
+            after: '.page-break-after',
+          },
+        };
+
+        exportPdfBtn.innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="7 10 12 15 17 10"></polyline>
+      <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>
+    导出中...
+  `;
+
+        exportPdfBtn.disabled = true;
+
+        // 创建一个临时容器来放置克隆的元素
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'absolute';
+        tempContainer.style.left = '-9999px';
+        tempContainer.appendChild(elementToPrint);
+        document.body.appendChild(tempContainer);
+
+        html2pdf()
+          .set(opt)
+          .from(elementToPrint)
+          .save()
+          .then(() => {
+            document.body.removeChild(tempContainer);
+
+            exportPdfBtn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        导出PDF
+      `;
+            exportPdfBtn.disabled = false;
+
+            saveStatus.textContent = 'PDF导出成功';
+            setTimeout(() => (saveStatus.textContent = ''), 2000);
+          })
+          .catch((err) => {
+            console.error('PDF导出失败:', err);
+            saveStatus.textContent = 'PDF导出失败';
+            setTimeout(() => (saveStatus.textContent = ''), 2000);
+          });
+      });
+    </script>
+  </body>
+</html>

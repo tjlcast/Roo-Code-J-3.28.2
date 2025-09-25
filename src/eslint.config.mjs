@@ -30,6 +30,13 @@ export default [
 		},
 	},
 	{
-		ignores: ["webview-ui", "out", "tjl/mmdcodelensprovider/mermaid.min.js"],
+		ignores: [
+			"webview-ui",
+			"out",
+			"tjl/mmdcodelensprovider/mermaid.min.js",
+			"tjl/markdownprovider/media/marked.min.js",
+			"tjl/markdownprovider/media/highlight.min.js",
+			"tjl/markdownprovider/media/html2pdf.bundle.min.js",
+		],
 	},
 ]
