@@ -4,6 +4,7 @@ import * as fs from "fs"
 import nodeFetch from "node-fetch"
 import { PassThrough } from "stream"
 import * as vscode from "vscode"
+import { Package } from "../../shared/package"
 
 const CURL_COMMAND_NAME = "roo.tools.command.curl"
 
@@ -78,8 +79,9 @@ export class CurlCodeLensProvider implements vscode.CodeLensProvider {
 
 	public provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
 		this.codeLenses = []
-		if (!vscode.workspace.getConfiguration("chatgpt").get<boolean>("tools.enable.codelen.curl")) {
-			return this.codeLenses
+		// 判断是否启用函数焦点模式
+		if (!vscode.workspace.getConfiguration(Package.name).get<boolean>("enableCodeActions", true)) {
+			return []
 		}
 
 		const text = document.getText()

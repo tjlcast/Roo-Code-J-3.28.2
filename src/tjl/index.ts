@@ -5,7 +5,7 @@ import CodeLensProvider from "./codelensprovider"
 import vscode from "vscode"
 import { asyncGenerateCommitMessageHandler } from "./git/generate-commit-message"
 import { fileMapActivate } from "./filemap/file-map"
-import { buildCurlTool } from "./curlcodelens/curl-codelens-provider"
+import { buildCurlTool } from "./curlcodelensprovider/curl-codelens-provider"
 
 export function tjl(context: vscode.ExtensionContext, provider: ClineProvider) {
 	// 注册函数焦点
