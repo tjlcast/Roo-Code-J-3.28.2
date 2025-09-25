@@ -12,6 +12,17 @@ interface OpenFileOptions {
 
 export async function openFile(filePath: string, options: OpenFileOptions = {}) {
 	try {
+		// 检查是否指定了行号范围 (例如: file.txt:10-20)
+		let lineNumberRange: { start: number; end: number } | null = null
+		const lineRangeMatch = filePath.match(/^(.+):(\d+)-(\d+)$/)
+		if (lineRangeMatch) {
+			filePath = lineRangeMatch[1]
+			const startLine = parseInt(lineRangeMatch[2], 10)
+			const endLine = parseInt(lineRangeMatch[3], 10)
+			lineNumberRange = { start: startLine, end: endLine }
+			options.line = startLine
+		}
+
 		// Store the original path for error messages before any modifications
 		const originalFilePathForError = filePath
 
@@ -137,7 +148,12 @@ export async function openFile(filePath: string, options: OpenFileOptions = {}) 
 		const document = await vscode.workspace.openTextDocument(uriToProcess)
 		const selection =
 			options.line !== undefined
-				? new vscode.Selection(Math.max(options.line - 1, 0), 0, Math.max(options.line - 1, 0), 0)
+				? new vscode.Selection(
+						Math.min(Math.max(options.line - 1, 0), document.lineCount - 1),
+						0,
+						Math.min(Math.max(options.line - 1, 0), document.lineCount - 1),
+						0,
+					)
 				: undefined
 		await vscode.window.showTextDocument(document, {
 			preview: false,

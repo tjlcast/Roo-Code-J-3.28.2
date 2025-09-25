@@ -10,7 +10,7 @@ import { getCommitInfo, getWorkingState } from "../../utils/git"
 import { getWorkspacePath } from "../../utils/path"
 
 import { openFile } from "../../integrations/misc/open-file"
-import { extractTextFromFile } from "../../integrations/misc/extract-text"
+import { addLineNumbers, extractTextFromFile } from "../../integrations/misc/extract-text"
 import { diagnosticsToProblemsString } from "../../integrations/diagnostics"
 
 import { UrlContentFetcher } from "../../services/browser/UrlContentFetcher"
@@ -21,6 +21,7 @@ import { RooIgnoreController } from "../ignore/RooIgnoreController"
 import { getCommand, type Command } from "../../services/command/commands"
 
 import { t } from "../../i18n"
+import { readLines } from "../../integrations/misc/read-lines"
 
 function getUrlErrorMessage(error: unknown): string {
 	const errorMessage = error instanceof Error ? error.message : String(error)
@@ -198,9 +199,20 @@ export async function parseMentions(
 				if (mention.endsWith("/")) {
 					parsedText += `\n\n<folder_content path="${mentionPath}">\n${content}\n</folder_content>`
 				} else {
-					parsedText += `\n\n<file_content path="${mentionPath}">\n${content}\n</file_content>`
-					if (fileContextTracker) {
-						await fileContextTracker.trackFileContext(mentionPath, "file_mentioned")
+					const lineRangeMatch = mentionPath.match(/^(.+):(\d+)-(\d+)$/)
+					if (lineRangeMatch) {
+						const mentionPath = lineRangeMatch[1]
+						const startLine = parseInt(lineRangeMatch[2], 10)
+						const endLine = parseInt(lineRangeMatch[3], 10)
+						parsedText += `\n\n<file_content path="${mentionPath}">\n<segment startLine=${startLine} endLine=${endLine}>${content}\n</segment>\n</file_content>`
+						if (fileContextTracker) {
+							await fileContextTracker.trackFileContext(mentionPath, "file_mentioned")
+						}
+					} else {
+						parsedText += `\n\n<file_content path="${mentionPath}">\n${content}\n</file_content>`
+						if (fileContextTracker) {
+							await fileContextTracker.trackFileContext(mentionPath, "file_mentioned")
+						}
 					}
 				}
 			} catch (error) {
@@ -273,6 +285,16 @@ async function getFileOrFolderContent(
 	showRooIgnoredFiles: boolean = true,
 	maxReadFileLine?: number,
 ): Promise<string> {
+	// 检查是否指定了行号范围 (例如: file.txt:10-20)
+	let lineNumberRange: { start: number; end: number } | null = null
+	const lineRangeMatch = mentionPath.match(/^(.+):(\d+)-(\d+)$/)
+	if (lineRangeMatch) {
+		mentionPath = lineRangeMatch[1]
+		const startLine = parseInt(lineRangeMatch[2], 10)
+		const endLine = parseInt(lineRangeMatch[3], 10)
+		lineNumberRange = { start: startLine, end: endLine }
+	}
+
 	const unescapedPath = unescapeSpaces(mentionPath)
 	const absPath = path.resolve(cwd, unescapedPath)
 
@@ -284,7 +306,16 @@ async function getFileOrFolderContent(
 				return `(File ${mentionPath} is ignored by .rooignore)`
 			}
 			try {
-				const content = await extractTextFromFile(absPath, maxReadFileLine)
+				let content: string
+				if (lineNumberRange) {
+					// 如果指定了行号范围，则只读取指定的行
+					content = await readLines(absPath, lineNumberRange.end - 1, lineNumberRange.start - 1)
+					// 添加行号，从指定的起始行开始
+					content = addLineNumbers(content, lineNumberRange.start)
+				} else {
+					// 否则读取整个文件（或根据maxReadFileLine限制）
+					content = await extractTextFromFile(absPath, maxReadFileLine)
+				}
 				return content
 			} catch (error) {
 				return `(Failed to read contents of ${mentionPath}): ${error.message}`

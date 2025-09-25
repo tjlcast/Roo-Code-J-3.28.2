@@ -191,6 +191,29 @@ const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 					if (message.requestId === searchRequestId) {
 						setFileSearchResults(message.results || [])
 					}
+				} else if (message.type === "tjlSelectedContent") {
+					let newValue = ""
+					const text = message.text
+					if (inputValue.trim() === "") {
+						// 如果inputValue为空，直接使用text赋值
+						newValue = text
+					} else {
+						// 检查inputValue是否以@文件路径格式开头
+						const mentionRegex = /^@([^\s]+)(:\d+-\d+)?(\s.*)?$/
+						const match = inputValue.match(mentionRegex)
+
+						if (match) {
+							// inputValue以@开头，替换@部分的内容
+							const afterMention = match[3] || ""
+							newValue = `${text.trim()} ${afterMention.trim()}`
+						} else {
+							newValue = `${text.trim()} ${inputValue.trim()}`
+							setInputValue(newValue)
+							return
+						}
+					}
+
+					setInputValue(newValue)
 				}
 			}
 
