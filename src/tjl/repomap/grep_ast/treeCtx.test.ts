@@ -8,7 +8,7 @@ import { setDebug as lang_set_debug } from "./lang"
 // cd src; pnpm test tjl/repomap/grep_ast/treeCtx.test.ts
 
 describe("TreeCtx", () => {
-	it("should create instance and parse code correctly", async () => {
+	it("test grep_ast", async () => {
 		lang_set_debug(true)
 
 		// 使用相对路径而不是绝对路径，提高测试的可移植性
@@ -42,5 +42,7 @@ describe("TreeCtx", () => {
 		console.log("Output content:", output) // 添加这行来输出内容
 
 		expect(output).not.toEqual("")
+
+		expect(output.length).toEqual(885)
 	})
 })

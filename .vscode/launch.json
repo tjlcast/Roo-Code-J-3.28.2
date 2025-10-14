@@ -24,6 +24,39 @@
 				"group": "tasks",
 				"order": 1
 			}
+		},
+		{
+			"type": "node",
+			"name": "Jest get_ranked_tags",
+			"request": "launch",
+			"runtimeExecutable": "pnpm",
+			"runtimeArgs": ["test", "tjl/repomap/repomap/RepoMap.test.ts", "-t", "get_ranked_tags"],
+			"cwd": "${workspaceFolder}/src",
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen",
+			"disableOptimisticBPs": true
+		},
+		{
+			"type": "node",
+			"name": "Jest grep_ast",
+			"request": "launch",
+			"runtimeExecutable": "pnpm",
+			"runtimeArgs": ["test", "tjl/repomap/grep_ast/treeCtx.test.ts", "-t", "test grep_ast"],
+			"cwd": "${workspaceFolder}/src",
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen",
+			"disableOptimisticBPs": true
+		},
+		{
+			"type": "node",
+			"name": "Jest get_repo_map",
+			"request": "launch",
+			"runtimeExecutable": "pnpm",
+			"runtimeArgs": ["test", "tjl/repomap/repomap/RepoMap.test.ts", "-t", "get_repo_map"],
+			"cwd": "${workspaceFolder}/src",
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen",
+			"disableOptimisticBPs": true
 		}
 	]
 }
