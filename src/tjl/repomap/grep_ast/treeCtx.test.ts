@@ -39,6 +39,8 @@ describe("TreeCtx", () => {
 
 		const output = ctx.format()
 
+		console.log("Output content:", output) // 添加这行来输出内容
+
 		expect(output).not.toEqual("")
 	})
 })
