@@ -23,10 +23,13 @@ export async function getLanguageByExtension(ext: string) {
 	const lang = languageByExt[ext]
 	if (lang) {
 		if (IS_DEBUG) {
-			return await loadLanguage(
-				lang,
-				"C:/Users/phx10/code/Roo-Code-J-3.28.2/src/node_modules/tree-sitter-wasms/out",
-			)
+			// return await loadLanguage(
+			// 	lang,
+			// 	"C:/Users/phx10/code/Roo-Code-J-3.28.2/src/node_modules/tree-sitter-wasms/out",
+			// )
+			// 使用 require.resolve 来动态获取 tree-sitter-wasms 模块路径
+			const WASM_DIR = path.join(__dirname, "../../../node_modules/tree-sitter-wasms/out")
+			return await loadLanguage(lang, WASM_DIR)
 		} else {
 			return await loadLanguage(lang)
 		}
