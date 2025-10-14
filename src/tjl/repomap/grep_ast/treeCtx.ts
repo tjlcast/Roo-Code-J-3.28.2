@@ -1,4 +1,4 @@
-import { Parser, Language, Tree, Node } from "web-tree-sitter"
+import { Parser, Tree, Node } from "web-tree-sitter"
 import { getLanguageByExtension } from "./lang"
 import chalk from "chalk"
 

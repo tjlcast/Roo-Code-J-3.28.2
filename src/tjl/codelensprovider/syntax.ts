@@ -56,7 +56,9 @@ export class SyntaxService {
 		try {
 			await Parser.init()
 			const parser = new Parser()
-			const wasmPath = path.resolve(__dirname, `resources/wasm/${SyntaxLoaders[lang]}`)
+			// const wasmPath = path.resolve(__dirname, `resources/wasm/${SyntaxLoaders[lang]}`)
+			const baseDir = __dirname
+			const wasmPath = path.join(baseDir, `${SyntaxLoaders[lang]}`)
 			const Lang = await Language.load(wasmPath)
 			parser.setLanguage(Lang)
 			return parser

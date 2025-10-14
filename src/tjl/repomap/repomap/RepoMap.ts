@@ -1,10 +1,9 @@
 import fs from "fs"
 import path from "path"
-import { Parser, Language, Tree, Node } from "web-tree-sitter"
+import { Parser } from "web-tree-sitter"
 import { MultiDiGraph } from "../pagerank/pagerankMulti"
 import { TreeCtx } from "../grep_ast/treeCtx"
-import { getLanguageByExtension, loadLanguage } from "../grep_ast/lang"
-import { initializeTreeSitter } from "../../../services/tree-sitter/__tests__/helpers"
+import { loadLanguage } from "../grep_ast/lang"
 // 由于模块导出问题，我们稍后将通过其他方式访问TreeCtx
 
 let IS_DEBUG = false

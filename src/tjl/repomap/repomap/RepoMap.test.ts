@@ -1,4 +1,3 @@
-import fs from "fs"
 import path from "path"
 import { findSrcFiles, RepoMap, setDebug } from "./RepoMap"
 
@@ -60,18 +59,14 @@ describe("RepoMap", () => {
 			if (repoMapResult) {
 				console.log(">>>>")
 				console.log(repoMapResult)
-				expect(repoMapResult).toBe(null)
-				expect(repoMapResult.length).toBe(819)
-				// expect(
-				// 	repoMapResult.startsWith(
-				// 		"\ndemo.rs:\n│fn main() {\r\n⋮\n│mod tests {\r\n│    use personalized_pagerank::pagerank_multi1::{MultiDiGraph, OutEdgeResult};\r\n│\r\n│",
-				// 	),
-				// ).toBe(true)
-				// expect(
-				// 	repoMapResult.endsWith(
-				// 		"│        .map(|entry| entry.path().to_string_lossy().to_string())\r\n│        .collect()\r\n⋮\n\n",
-				// 	),
-				// ).toBe(true)
+				expect(repoMapResult).not.toBe(null)
+				expect(repoMapResult.length).toBe(4198)
+				expect(
+					repoMapResult.startsWith(
+						"\nlang.ts:\n⋮\n│export function setDebug(debug: boolean) {\n│\tIS_DEBUG = debug\n⋮\n│",
+					),
+				).toBe(true)
+				expect(repoMapResult.endsWith("\r\n│\t\t}\r\n│\r\n⋮\n\n")).toBe(true)
 			} else {
 				console.log("No repo map found")
 			}
