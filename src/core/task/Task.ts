@@ -1433,6 +1433,8 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			maxReadFileLine = -1,
 		} = (await this.providerRef.deref()?.getState()) ?? {}
 
+		// 该函数会扫描用户提供的内容，查找并处理各种提及标记
+		// 将提及标记替换为描述性文本, 在内容末尾添加详细的上下文信息块
 		const parsedUserContent = await processUserContentMentions({
 			userContent,
 			cwd: this.cwd,
