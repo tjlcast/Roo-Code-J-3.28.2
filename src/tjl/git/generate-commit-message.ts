@@ -88,7 +88,9 @@ Ensure the commit message:
 - Is in the imperative mood (e.g., "Add feature" not "Added feature" or "Adding feature").
 - Does not exceed 72 characters.
 
-And <scope> part means where in the project did this change happen, it provides additional contextual information about the part of the codebase that the change affects.
+There is another structured commit message as follows: <type>(<scope>): <description>
+If the diffs are related to a specific part of the codebase, include the scope in the commit message.
+<scope> part means where in the project did this change happen, it provides additional contextual information about the part of the codebase that the change affects.
 Examples of Common Scopes.
 Scopes are highly dependent on your project's structure. Here are some typical examples:
 + For a Web Application (e.g., a frontend framework like React/Angular):
