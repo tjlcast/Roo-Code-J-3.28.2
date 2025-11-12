@@ -193,6 +193,9 @@ export async function activate(context: vscode.ExtensionContext) {
 	const socketPath = process.env.ROO_CODE_IPC_SOCKET_PATH
 	const enableLogging = typeof socketPath === "string"
 
+	// 注册tjl相关功能
+	tjl(context, provider)
+
 	// Watch the core files and automatically reload the extension host.
 	if (process.env.NODE_ENV === "development") {
 		const pattern = "**/*.ts"

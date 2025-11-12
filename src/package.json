@@ -205,6 +205,11 @@
 				"command": "roo-cline.generateCommitMessage",
 				"title": "Roo: Generate commit message",
 				"icon": "images/openai-logo.svg"
+			},
+			{
+				"command": "roo-cline.openPromptManager",
+				"title": "Roo: Open Prompt Manager",
+				"category": "Roo Code"
 			}
 		],
 		"menus": {

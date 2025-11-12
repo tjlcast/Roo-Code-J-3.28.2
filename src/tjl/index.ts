@@ -9,6 +9,7 @@ import { buildCurlTool } from "./curlcodelensprovider/curl-codelens-provider"
 import { buildMmdTool } from "./mmdcodelensprovider/mmd-codelens-provider"
 import { buildSelectedContent } from "./sendselectedcontent/send_selected_content"
 import { buildMarkdownTool } from "./markdownprovider/markdown-command-provider"
+import { registerPromptManager } from "./promptmanager/promptManagerModule"
 
 export function tjl(context: vscode.ExtensionContext, provider: ClineProvider) {
 	// 注册函数焦点
@@ -41,6 +42,9 @@ export function tjl(context: vscode.ExtensionContext, provider: ClineProvider) {
 
 	// 注册markdown provider
 	buildMarkdownTool(context)
+
+	// 注册提示词管理页面
+	registerPromptManager(context)
 
 	// done.
 }
