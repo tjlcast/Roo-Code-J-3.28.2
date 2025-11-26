@@ -2,7 +2,7 @@
 import path from "path"
 import * as vscode from "vscode"
 import { Parser } from "xml2js"
-// import { updateAgentInstance } from "./agent/agent"
+import { updateAgentInstance } from "../codeinfill/agent/agent"
 // import { logger } from './logger';
 // import { asyncRunWithStatusBarUpdate } from "./status-bar-item"
 
@@ -60,11 +60,11 @@ export const asyncCheckForUpdates = async (context: vscode.ExtensionContext) => 
 		return
 	}
 
-	// if (tabbyEndpoint && tabbyEndpoint?.length > 0) {
-	// 	updateAgentInstance(context, tabbyEndpoint)
-	// } else {
-	// 	updateAgentInstance(context, "")
-	// }
+	if (tabbyEndpoint && tabbyEndpoint?.length > 0) {
+		updateAgentInstance(context, tabbyEndpoint)
+	} else {
+		updateAgentInstance(context, "")
+	}
 
 	if (chatEndpoint && chatEndpoint?.length > 0) {
 		// 获取配置对象

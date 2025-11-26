@@ -12,9 +12,6 @@ import { buildMarkdownTool } from "./markdownprovider/markdown-command-provider"
 import { asyncCheckForUpdates } from "./upgrade/update-plugin"
 
 export async function tjl(context: vscode.ExtensionContext, provider: ClineProvider) {
-	// 插件更新检查
-	await asyncCheckForUpdates(context)
-
 	// 注册函数焦点
 	new CodeLensProvider(context)
 
@@ -23,7 +20,7 @@ export async function tjl(context: vscode.ExtensionContext, provider: ClineProvi
 	context.subscriptions.push(
 		vscode.languages.registerInlineCompletionItemProvider({ pattern: "**" }, completionProvider),
 	)
-	updateAgentInstance(context, "http://localhost:9966")
+	await updateAgentInstance(context, "http://localhost:9966")
 
 	// 注册git commit gc
 	let disposable = vscode.commands.registerCommand("roo-cline.generateCommitMessage", async () => {
@@ -45,6 +42,9 @@ export async function tjl(context: vscode.ExtensionContext, provider: ClineProvi
 
 	// 注册markdown provider
 	buildMarkdownTool(context)
+
+	// 插件更新检查
+	await asyncCheckForUpdates(context)
 
 	// done.
 }
