@@ -9,8 +9,12 @@ import { buildCurlTool } from "./curlcodelensprovider/curl-codelens-provider"
 import { buildMmdTool } from "./mmdcodelensprovider/mmd-codelens-provider"
 import { buildSelectedContent } from "./sendselectedcontent/send_selected_content"
 import { buildMarkdownTool } from "./markdownprovider/markdown-command-provider"
+import { asyncCheckForUpdates } from "./upgrade/update-plugin"
 
-export function tjl(context: vscode.ExtensionContext, provider: ClineProvider) {
+export async function tjl(context: vscode.ExtensionContext, provider: ClineProvider) {
+	// 插件更新检查
+	await asyncCheckForUpdates(context)
+
 	// 注册函数焦点
 	new CodeLensProvider(context)
 
