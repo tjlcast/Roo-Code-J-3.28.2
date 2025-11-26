@@ -9,7 +9,7 @@ import { updateAgentInstance } from "../codeinfill/agent/agent"
 // 配置的下载xml地址
 // xml的格式信息参考 ./release.xml 文件
 export const remoteUrl = "https://tjlcast.github.io/static-web/release.xml"
-// export const remoteUrl = 'http://197.68.33.61:82/versions/releases/vscode/release.xml';
+// export const remoteUrl = 'http://197.68.33.61:82/versions/releases/vscode/release.xml'
 
 // 本插件的 extensionId
 export const extensionId = "RooVeterinaryInc.roo-cline"
