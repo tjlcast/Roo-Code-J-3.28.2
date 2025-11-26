@@ -11,8 +11,8 @@ $fileContent = [System.IO.File]::ReadAllText($filePath, [System.Text.Encoding]::
 
 # Perform replacements
 $fileContent = $fileContent `
-    -replace "export const remoteUrl = 'https://tjlcast.github.io/static-web/release.xml'", "// export const remoteUrl = 'https://tjlcast.github.io/static-web/release.xml'" `
-    -replace "// export const remoteUrl = 'http://197.68.33.61:82/versions/releases/vscode/release.xml'", "export const remoteUrl = 'http://197.68.33.61:82/versions/releases/vscode/release.xml'"
+    -replace 'export const remoteUrl = "https://tjlcast.github.io/static-web/release.xml"', '// export const remoteUrl = "https://tjlcast.github.io/static-web/release.xml"' `
+    -replace '// export const remoteUrl = "http://197.68.33.61:82/versions/releases/vscode/release.xml"', 'export const remoteUrl = "http://197.68.33.61:82/versions/releases/vscode/release.xml"'
 
 # Write content back to the file
 [System.IO.File]::WriteAllText($filePath, $fileContent, [System.Text.Encoding]::UTF8)
@@ -25,8 +25,8 @@ pnpm run vsix
 $fileContent = [System.IO.File]::ReadAllText($filePath, [System.Text.Encoding]::UTF8)
 
 $fileContent = $fileContent `
-    -replace "export const remoteUrl = 'http://197.68.33.61:82/versions/releases/vscode/release.xml'", "// export const remoteUrl = 'http://197.68.33.61:82/versions/releases/vscode/release.xml'" `
-    -replace "// export const remoteUrl = 'https://tjlcast.github.io/static-web/release.xml'", "export const remoteUrl = 'https://tjlcast.github.io/static-web/release.xml'"
+    -replace 'export const remoteUrl = "http://197.68.33.61:82/versions/releases/vscode/release.xml"', '// export const remoteUrl = "http://197.68.33.61:82/versions/releases/vscode/release.xml"' `
+    -replace '// export const remoteUrl = "https://tjlcast.github.io/static-web/release.xml"', 'export const remoteUrl = "https://tjlcast.github.io/static-web/release.xml"'
 
 # Write content back to the file
 [System.IO.File]::WriteAllText($filePath, $fileContent, [System.Text.Encoding]::UTF8)
