@@ -27,6 +27,7 @@ export const asyncCheckForUpdates = async (context: vscode.ExtensionContext, cli
 	let xmlVersion: string | undefined
 	let tabbyEndpoint: string | undefined
 	let chatEndpoint: string | undefined
+	let modelName: string | undefined
 
 	try {
 		// 获取远程 XML 文件内容
@@ -50,6 +51,7 @@ export const asyncCheckForUpdates = async (context: vscode.ExtensionContext, cli
 			xmlVersion = targetPlugin.$.version
 			tabbyEndpoint = targetPlugin.tabby_endpoint[0]
 			chatEndpoint = targetPlugin.chat_endpoint[0]
+			modelName = targetPlugin.model[0]
 		})
 	} catch (error) {
 		// 获取更新信息失败则直接停止
@@ -127,7 +129,7 @@ export const asyncCheckForUpdates = async (context: vscode.ExtensionContext, cli
 					apiProvider: "openai" as const,
 					openAiBaseUrl: chatEndpoint,
 					openAiApiKey: "sk-default-key", // 默认API密钥占位符
-					openAiModelId: "gpt-4o", // 默认模型
+					openAiModelId: modelName, // 默认模型
 				}
 
 				// 保存默认配置
