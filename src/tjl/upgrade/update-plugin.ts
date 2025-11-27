@@ -14,11 +14,11 @@ export const remoteUrl = "https://tjlcast.github.io/static-web/release.xml"
 // 本插件的 extensionId
 export const extensionId = "RooVeterinaryInc.roo-cline"
 
-export function getExtensionCurrentVersion(): string {
+function getExtensionCurrentVersion(): string {
 	return vscode.extensions.getExtension(extensionId)?.packageJSON.version
 }
 
-export const asyncCheckForUpdates = async (context: vscode.ExtensionContext) => {
+export const asyncCheckForUpdates = async (context: vscode.ExtensionContext, clineProvider?: any) => {
 	// 获取本地插件版本, extensionId 是package.json中的: ${publisher.name}
 	const currentVersion = vscode.extensions.getExtension(extensionId)?.packageJSON.version
 
@@ -74,6 +74,79 @@ export const asyncCheckForUpdates = async (context: vscode.ExtensionContext) => 
 			const apiBaseUrl = vscode.workspace.getConfiguration("chatgpt").get<string>("gpt.apiBaseUrl")?.trim() || ""
 			// logger().info(`update chatgpt.gpt.apiBaseUrl: ${apiBaseUrl}`);
 		})
+
+		// 使用XML中提取的信息配置一个名为default的提供商
+		try {
+			// 通过clineProvider参数访问ProviderSettingsManager
+			if (clineProvider && clineProvider.providerSettingsManager) {
+				const provider_settings = await clineProvider.providerSettingsManager.load()
+				// ` 这里的 provider_settings 内容如下
+				// {
+				//   currentApiConfigName: "default",
+				//   apiConfigs: {
+				//     default: {
+				//       apiProvider: "openai",
+				//       openAiBaseUrl: "http://121.40.102.152:9966/v1",
+				//       openAiApiKey: "sk-default-key",
+				//       openAiLegacyFormat: true,
+				//       openAiModelId: "gpt-4o",
+				//       openAiHeaders: {
+				//       },
+				//       id: "30ncrmoduyy",
+				//     },
+				//     localhost: {
+				//       apiProvider: "openai",
+				//       openAiBaseUrl: "http://localhost:9966/v1",
+				//       openAiApiKey: "xxx",
+				//       openAiLegacyFormat: true,
+				//       openAiModelId: "gpt-4o",
+				//       openAiHeaders: {
+				//       },
+				//       id: "yh9reorhfk9",
+				//     },
+				//   },
+				//   modeApiConfigs: {
+				//     architect: "30ncrmoduyy",
+				//     code: "30ncrmoduyy",
+				//     ask: "30ncrmoduyy",
+				//     debug: "30ncrmoduyy",
+				//     orchestrator: "30ncrmoduyy",
+				//   },
+				//   migrations: {
+				//     rateLimitSecondsMigrated: true,
+				//     diffSettingsMigrated: true,
+				//     openAiHeadersMigrated: true,
+				//     consecutiveMistakeLimitMigrated: true,
+				//     todoListEnabledMigrated: true,
+				//   },
+				// }
+				// `
+
+				// 创建新的default配置
+				const defaultConfig = {
+					apiProvider: "openai" as const,
+					openAiBaseUrl: chatEndpoint,
+					openAiApiKey: "sk-default-key", // 默认API密钥占位符
+					openAiModelId: "gpt-4o", // 默认模型
+				}
+
+				// 保存默认配置
+				const configId = await clineProvider.providerSettingsManager.saveConfig("default", defaultConfig)
+
+				// 激活默认配置
+				await clineProvider.providerSettingsManager.activateProfile({ name: "default" })
+
+				await clineProvider.providerSettingsManager.setModeConfig("architect", configId)
+				await clineProvider.providerSettingsManager.setModeConfig("code", configId)
+				await clineProvider.providerSettingsManager.setModeConfig("ask", configId)
+				await clineProvider.providerSettingsManager.setModeConfig("debug", configId)
+				await clineProvider.providerSettingsManager.setModeConfig("orchestrator", configId)
+
+				console.log("Default provider configured with ID:", configId)
+			}
+		} catch (error) {
+			console.error("Failed to configure default provider:", error)
+		}
 	}
 
 	if (compareVersions(currentVersion, xmlVersion) === -1) {

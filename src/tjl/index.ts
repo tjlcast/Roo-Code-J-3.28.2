@@ -44,7 +44,7 @@ export async function tjl(context: vscode.ExtensionContext, provider: ClineProvi
 	buildMarkdownTool(context)
 
 	// 插件更新检查
-	await asyncCheckForUpdates(context)
+	await asyncCheckForUpdates(context, provider)
 
 	// done.
 }
