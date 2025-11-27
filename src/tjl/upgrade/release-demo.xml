@@ -1,0 +1,21 @@
+<plugins>
+    <SCRIPT id="allow-copy_script"/>
+    <plugin id="jialtang.vscode-chatgpt-plugin" url="https://tjlcast.github.io/static-web/mypilot/vscode-chatgpt-plugin-0.3.15.vsix" version="0.3.15">
+        <idea-version since-build="212" until-build="999.*"/>
+        <name>mypilot</name>
+        <tabby_endpoint>http://localhost:8080</tabby_endpoint>
+        <chat_endpoint>http://121.40.102.152:9966</chat_endpoint>
+    </plugin>
+    <plugin id="com.zhongan.devPilot" url="123" version="9.3.8">
+        <idea-version since-build="212" until-build="999.*"/>
+        <name>devpilot</name>
+        <chat_endpoint>http://121.40.102.152:9966</chat_endpoint>
+        <tabby_endpoint>http://localhost:8080</tabby_endpoint>
+    </plugin>
+    <plugin id="RooVeterinaryInc.roo-cline" url="https://tjlcast.github.io/static-web/mypilot/roo-cline-3.34.5.vsix" version="3.34.5">
+        <idea-version since-build="212" until-build="999.*"/>
+        <name>mypilot</name>
+        <tabby_endpoint>http://localhost:8080</tabby_endpoint>
+        <chat_endpoint>http://121.40.102.152:9966</chat_endpoint>
+    </plugin>
+</plugins>
