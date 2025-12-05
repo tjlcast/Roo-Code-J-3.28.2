@@ -18,5 +18,6 @@
         <model>qwen-coder</model>
         <tabby_endpoint>http://localhost:8080</tabby_endpoint>
         <chat_endpoint>http://121.40.102.152:9966/v1</chat_endpoint>
+        <marketplace_mcp default="https://app.roocode.com/api/marketplace/mcps">https://tjlcast.github.io/static-web/marketplace-mcps.yaml</marketplace_mcp>
     </plugin>
 </plugins>

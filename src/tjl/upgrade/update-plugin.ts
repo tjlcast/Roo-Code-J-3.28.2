@@ -28,6 +28,7 @@ export const asyncCheckForUpdates = async (context: vscode.ExtensionContext, cli
 	let tabbyEndpoint: string | undefined
 	let chatEndpoint: string | undefined
 	let modelName: string | undefined
+	let marketplace_mcp: string | undefined
 
 	try {
 		// 获取远程 XML 文件内容
@@ -52,6 +53,7 @@ export const asyncCheckForUpdates = async (context: vscode.ExtensionContext, cli
 			tabbyEndpoint = targetPlugin.tabby_endpoint[0]
 			chatEndpoint = targetPlugin.chat_endpoint[0]
 			modelName = targetPlugin.model[0]
+			marketplace_mcp = targetPlugin.marketplace_mcp[0]
 		})
 	} catch (error) {
 		// 获取更新信息失败则直接停止
@@ -60,6 +62,12 @@ export const asyncCheckForUpdates = async (context: vscode.ExtensionContext, cli
 
 	if (!(xmlId && xmlUrl && xmlVersion)) {
 		return
+	}
+
+	// 保存 marketplace_mcp 到配置
+	if (marketplace_mcp && marketplace_mcp?.length > 0) {
+		const config = vscode.workspace.getConfiguration("roo-code")
+		config.update("marketplace.mcp.url", marketplace_mcp, vscode.ConfigurationTarget.Global)
 	}
 
 	if (tabbyEndpoint && tabbyEndpoint?.length > 0) {
