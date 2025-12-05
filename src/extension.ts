@@ -52,6 +52,11 @@ import { tjl } from "./tjl"
 let outputChannel: vscode.OutputChannel
 let extensionContext: vscode.ExtensionContext
 
+// 添加 getter 函数以便其他模块可以访问 outputChannel
+export function getOutputChannel(): vscode.OutputChannel {
+	return outputChannel
+}
+
 // This method is called when your extension is activated.
 // Your extension is activated the very first time the command is executed.
 export async function activate(context: vscode.ExtensionContext) {

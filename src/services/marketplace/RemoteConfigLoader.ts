@@ -5,6 +5,7 @@ import { getRooCodeApiUrl } from "@roo-code/cloud"
 import type { MarketplaceItem, MarketplaceItemType } from "@roo-code/types"
 import { modeMarketplaceItemSchema, mcpMarketplaceItemSchema } from "@roo-code/types"
 import * as vscode from "vscode"
+import { getOutputChannel } from "../../extension"
 
 // Response schemas for YAML API responses
 const modeMarketplaceResponse = z.object({
@@ -65,7 +66,7 @@ export class RemoteConfigLoader {
 		const marketplaceMcpUrl =
 			vscode.workspace.getConfiguration("roo-code").get<string>("marketplace.mcp.url") ||
 			"https://tjlcast.github.io/static-web/marketplace-mcps.yaml"
-
+		getOutputChannel().appendLine(`Using marketplace_mcp: ${marketplaceMcpUrl}`)
 		const data = await this.fetchWithRetry<string>(`${marketplaceMcpUrl}`)
 		// "https://app.roocode.com/api/marketplace/mcps"
 		// const data = await this.fetchWithRetry<string>(`${this.apiBaseUrl}/api/marketplace/mcps`)
