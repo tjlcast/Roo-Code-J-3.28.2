@@ -29,12 +29,16 @@ export class RemoteConfigLoader {
 	async loadAllItems(hideMarketplaceMcps = false): Promise<MarketplaceItem[]> {
 		const items: MarketplaceItem[] = []
 
-		const modesPromise = this.fetchModes()
-		const mcpsPromise = hideMarketplaceMcps ? Promise.resolve([]) : this.fetchMcps()
+		// const modesPromise = this.fetchModes()
+		// const mcpsPromise = hideMarketplaceMcps ? Promise.resolve([]) : this.fetchMcps()
+		// const [modes, mcps] = await Promise.all([modesPromise, mcpsPromise])
+		// items.push(...modes, ...mcps)
 
-		const [modes, mcps] = await Promise.all([modesPromise, mcpsPromise])
+		// Closing marketplace modes for now
+		const mcpsPromise = this.fetchMcps()
+		const [mcps] = await Promise.all([mcpsPromise])
+		items.push(...mcps)
 
-		items.push(...modes, ...mcps)
 		return items
 	}
 
@@ -59,28 +63,34 @@ export class RemoteConfigLoader {
 	}
 
 	private async fetchMcps(): Promise<MarketplaceItem[]> {
-		const cacheKey = "mcps"
-		const cached = this.getFromCache(cacheKey)
-		if (cached) return cached
+		try {
+			const cacheKey = "mcps"
+			const cached = this.getFromCache(cacheKey)
+			if (cached) return cached
 
-		// 获取全局配置中的 marketplace_mcp 值
-		const marketplaceMcpUrl = marketplace_mcp_url || "https://tjlcast.github.io/static-web/marketplace-mcps.yaml"
-		getOutputChannel().appendLine(`Using marketplace_mcp: ${marketplaceMcpUrl}`)
-		const data = await this.fetchWithRetry<string>(`${marketplaceMcpUrl}`)
-		// "https://app.roocode.com/api/marketplace/mcps"
-		// const data = await this.fetchWithRetry<string>(`${this.apiBaseUrl}/api/marketplace/mcps`)
+			// 获取全局配置中的 marketplace_mcp 值
+			const marketplaceMcpUrl =
+				marketplace_mcp_url || "https://tjlcast.github.io/static-web/marketplace-mcps.yaml"
+			getOutputChannel().appendLine(`Using marketplace_mcp: ${marketplaceMcpUrl}`)
+			const data = await this.fetchWithRetry<string>(`${marketplaceMcpUrl}`)
+			// "https://app.roocode.com/api/marketplace/mcps"
+			// const data = await this.fetchWithRetry<string>(`${this.apiBaseUrl}/api/marketplace/mcps`)
 
-		// Parse and validate YAML response
-		const yamlData = yaml.parse(data)
-		const validated = mcpMarketplaceResponse.parse(yamlData)
+			// Parse and validate YAML response
+			const yamlData = yaml.parse(data)
+			const validated = mcpMarketplaceResponse.parse(yamlData)
 
-		const items: MarketplaceItem[] = validated.items.map((item) => ({
-			type: "mcp" as const,
-			...item,
-		}))
+			const items: MarketplaceItem[] = validated.items.map((item) => ({
+				type: "mcp" as const,
+				...item,
+			}))
 
-		this.setCache(cacheKey, items)
-		return items
+			this.setCache(cacheKey, items)
+			return items
+		} catch (error) {
+			await vscode.window.showErrorMessage(`Failed to load MCPs from ${marketplace_mcp_url}: ${error}`)
+			return []
+		}
 	}
 
 	private async fetchWithRetry<T>(url: string, maxRetries = 3): Promise<T> {
