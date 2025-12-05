@@ -252,7 +252,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		}),
 	)
 
-	await tjl(context, provider)
+	await tjl(context, provider, outputChannel)
 
 	return new API(outputChannel, provider, socketPath, enableLogging)
 }

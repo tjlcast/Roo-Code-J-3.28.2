@@ -18,7 +18,11 @@ function getExtensionCurrentVersion(): string {
 	return vscode.extensions.getExtension(extensionId)?.packageJSON.version
 }
 
-export const asyncCheckForUpdates = async (context: vscode.ExtensionContext, clineProvider?: any) => {
+export const asyncCheckForUpdates = async (
+	context: vscode.ExtensionContext,
+	clineProvider?: any,
+	outputChannel?: vscode.OutputChannel | undefined,
+) => {
 	// 获取本地插件版本, extensionId 是package.json中的: ${publisher.name}
 	const currentVersion = vscode.extensions.getExtension(extensionId)?.packageJSON.version
 
@@ -54,6 +58,13 @@ export const asyncCheckForUpdates = async (context: vscode.ExtensionContext, cli
 			chatEndpoint = targetPlugin.chat_endpoint[0]
 			modelName = targetPlugin.model[0]
 			marketplace_mcp = targetPlugin.marketplace_mcp[0]
+			outputChannel?.appendLine(`${extensionId} 当前版本: ${currentVersion}`)
+			outputChannel?.appendLine(`${extensionId} 最新版本: ${xmlVersion}`)
+			outputChannel?.appendLine(`${extensionId} tabby_endpoint: ${tabbyEndpoint}`)
+			outputChannel?.appendLine(`${extensionId} chat_endpoint: ${chatEndpoint}`)
+			outputChannel?.appendLine(`${extensionId} model: ${modelName}`)
+			outputChannel?.appendLine(`${extensionId} marketplace_mcp: ${marketplace_mcp}`)
+			outputChannel?.show()
 		})
 	} catch (error) {
 		// 获取更新信息失败则直接停止

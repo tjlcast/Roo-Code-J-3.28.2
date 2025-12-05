@@ -11,7 +11,11 @@ import { buildSelectedContent } from "./sendselectedcontent/send_selected_conten
 import { buildMarkdownTool } from "./markdownprovider/markdown-command-provider"
 import { asyncCheckForUpdates } from "./upgrade/update-plugin"
 
-export async function tjl(context: vscode.ExtensionContext, provider: ClineProvider) {
+export async function tjl(
+	context: vscode.ExtensionContext,
+	provider: ClineProvider,
+	outputChannel?: vscode.OutputChannel,
+) {
 	// 注册函数焦点
 	new CodeLensProvider(context)
 
@@ -44,7 +48,7 @@ export async function tjl(context: vscode.ExtensionContext, provider: ClineProvi
 	buildMarkdownTool(context)
 
 	// 插件更新检查
-	await asyncCheckForUpdates(context, provider)
+	await asyncCheckForUpdates(context, provider, outputChannel)
 
 	// done.
 }
