@@ -6,6 +6,7 @@ import type { MarketplaceItem, MarketplaceItemType } from "@roo-code/types"
 import { modeMarketplaceItemSchema, mcpMarketplaceItemSchema } from "@roo-code/types"
 import * as vscode from "vscode"
 import { getOutputChannel } from "../../extension"
+import { marketplace_mcp_url } from "../../tjl/upgrade/update-plugin"
 
 // Response schemas for YAML API responses
 const modeMarketplaceResponse = z.object({
@@ -63,9 +64,7 @@ export class RemoteConfigLoader {
 		if (cached) return cached
 
 		// 获取全局配置中的 marketplace_mcp 值
-		const marketplaceMcpUrl =
-			vscode.workspace.getConfiguration("roo-code").get<string>("marketplace.mcp.url") ||
-			"https://tjlcast.github.io/static-web/marketplace-mcps.yaml"
+		const marketplaceMcpUrl = marketplace_mcp_url || "https://tjlcast.github.io/static-web/marketplace-mcps.yaml"
 		getOutputChannel().appendLine(`Using marketplace_mcp: ${marketplaceMcpUrl}`)
 		const data = await this.fetchWithRetry<string>(`${marketplaceMcpUrl}`)
 		// "https://app.roocode.com/api/marketplace/mcps"

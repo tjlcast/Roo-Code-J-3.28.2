@@ -18,6 +18,8 @@ function getExtensionCurrentVersion(): string {
 	return vscode.extensions.getExtension(extensionId)?.packageJSON.version
 }
 
+export let marketplace_mcp_url: string = "https://app.roocode.com/api/marketplace/mcps"
+
 export const asyncCheckForUpdates = async (
 	context: vscode.ExtensionContext,
 	clineProvider?: any,
@@ -65,6 +67,9 @@ export const asyncCheckForUpdates = async (
 			outputChannel?.appendLine(`${extensionId} model: ${modelName}`)
 			outputChannel?.appendLine(`${extensionId} marketplace_mcp: ${marketplace_mcp}`)
 			outputChannel?.show()
+			if (marketplace_mcp !== undefined) {
+				marketplace_mcp_url = marketplace_mcp
+			}
 		})
 	} catch (error) {
 		// 获取更新信息失败则直接停止
