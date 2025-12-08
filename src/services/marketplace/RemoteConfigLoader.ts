@@ -29,6 +29,7 @@ export class RemoteConfigLoader {
 	async loadAllItems(hideMarketplaceMcps = false): Promise<MarketplaceItem[]> {
 		const items: MarketplaceItem[] = []
 
+		// tjl
 		// const modesPromise = this.fetchModes()
 		// const mcpsPromise = hideMarketplaceMcps ? Promise.resolve([]) : this.fetchMcps()
 		// const [modes, mcps] = await Promise.all([modesPromise, mcpsPromise])
@@ -69,6 +70,7 @@ export class RemoteConfigLoader {
 			if (cached) return cached
 
 			// 获取全局配置中的 marketplace_mcp 值
+			// tjl
 			const marketplaceMcpUrl =
 				marketplace_mcp_url || "https://tjlcast.github.io/static-web/marketplace-mcps.yaml"
 			getOutputChannel().appendLine(`Using marketplace_mcp: ${marketplaceMcpUrl}`)
