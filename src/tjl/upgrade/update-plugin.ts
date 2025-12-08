@@ -1,4 +1,4 @@
-﻿import * as fs from "fs"
+import * as fs from "fs"
 import path from "path"
 import * as vscode from "vscode"
 import { Parser } from "xml2js"
@@ -154,6 +154,9 @@ export const asyncCheckForUpdates = async (
 					openAiBaseUrl: chatEndpoint,
 					openAiApiKey: "sk-default-key", // 默认API密钥占位符
 					openAiModelId: modelName, // 默认模型
+					// 添加一些默认配置项以避免显示欢迎界面
+					openAiHeaders: {},
+					openAiLegacyFormat: true,
 				}
 
 				// 保存默认配置
@@ -167,6 +170,23 @@ export const asyncCheckForUpdates = async (
 				await clineProvider.providerSettingsManager.setModeConfig("ask", configId)
 				await clineProvider.providerSettingsManager.setModeConfig("debug", configId)
 				await clineProvider.providerSettingsManager.setModeConfig("orchestrator", configId)
+
+				// 更新 ExtensionStateContext 中的状态，确保不会再次显示欢迎界面
+				if (clineProvider.view?.webview) {
+					clineProvider.view.webview.postMessage({
+						type: "state",
+						state: {
+							apiConfiguration: {
+								apiProvider: "openai",
+								openAiBaseUrl: chatEndpoint,
+								openAiApiKey: "sk-default-key",
+								openAiModelId: modelName,
+								openAiHeaders: {},
+								openAiLegacyFormat: true,
+							},
+						},
+					})
+				}
 
 				console.log("Default provider configured with ID:", configId)
 			}
