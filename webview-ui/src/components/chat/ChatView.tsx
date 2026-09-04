@@ -71,6 +71,81 @@ export interface ChatViewRef {
 export const MAX_IMAGES_PER_MESSAGE = 20 // Anthropic limits to 20 images
 
 const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0
+const USER_MESSAGE_NAV_PREVIEW_LENGTH = 80
+
+interface UserMessageNavItem {
+	ts: number
+	groupIndex: number
+	preview: string
+	barWidth: number
+}
+
+const getUserMessagePreview = (message: ClineMessage, fallback: string) => {
+	const text = removeMd(message.text ?? "")
+		.replace(/\s+/g, " ")
+		.trim()
+
+	if (text) {
+		return text.length > USER_MESSAGE_NAV_PREVIEW_LENGTH
+			? `${text.slice(0, USER_MESSAGE_NAV_PREVIEW_LENGTH)}...`
+			: text
+	}
+
+	if ((message.images?.length ?? 0) > 0) {
+		return fallback
+	}
+
+	return fallback
+}
+
+const isUserMessage = (message: ClineMessage) =>
+	message.type === "say" && (message.say === "user_feedback" || message.say === "user_feedback_diff")
+
+interface UserMessageNavigatorProps {
+	items: UserMessageNavItem[]
+	activeTs?: number
+	onJump: (item: UserMessageNavItem) => void
+}
+
+const UserMessageNavigator = ({ items, activeTs, onJump }: UserMessageNavigatorProps) => {
+	if (items.length === 0) {
+		return null
+	}
+
+	return (
+		<div
+			className="w-5 shrink-0 flex flex-col items-center justify-center gap-1 py-2"
+			aria-label="User message navigation">
+			{items.map((item) => {
+				const isActive = item.ts === activeTs
+
+				return (
+					<StandardTooltip
+						key={`${item.ts}-${item.groupIndex}`}
+						content={item.preview}
+						side="left"
+						align="center"
+						maxWidth={260}>
+						<button
+							type="button"
+							aria-label={item.preview}
+							className={`h-1.5 rounded-full border-0 p-0 transition-all duration-150 ${
+								isActive ? "opacity-100" : "opacity-45 hover:opacity-85"
+							}`}
+							style={{
+								width: isActive ? Math.max(item.barWidth + 4, 22) : item.barWidth,
+								backgroundColor: isActive
+									? "var(--vscode-focusBorder)"
+									: "var(--vscode-descriptionForeground)",
+							}}
+							onClick={() => onJump(item)}
+						/>
+					</StandardTooltip>
+				)
+			})}
+		</div>
+	)
+}
 
 const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewProps> = (
 	{ isHidden, showAnnouncement, hideAnnouncement },
@@ -171,9 +246,11 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 	const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({})
 	const prevExpandedRowsRef = useRef<Record<number, boolean>>()
 	const scrollContainerRef = useRef<HTMLDivElement>(null)
+	const [virtuosoScroller, setVirtuosoScroller] = useState<HTMLElement | null>(null)
 	const disableAutoScrollRef = useRef(false)
 	const [showScrollToBottom, setShowScrollToBottom] = useState(false)
 	const [isAtBottom, setIsAtBottom] = useState(false)
+	const [activeGroupIndex, setActiveGroupIndex] = useState<number | undefined>(undefined)
 	const lastTtsRef = useRef<string>("")
 	const [wasStreaming, setWasStreaming] = useState<boolean>(false)
 	const [showCheckpointWarning, setShowCheckpointWarning] = useState<boolean>(false)
@@ -1330,6 +1407,120 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 		return result
 	}, [isCondensing, visibleMessages])
 
+	const userMessageNavItems = useMemo(() => {
+		return groupedMessages.flatMap((messageOrGroup, groupIndex): UserMessageNavItem[] => {
+			const groupMessages = Array.isArray(messageOrGroup) ? messageOrGroup : [messageOrGroup]
+
+			return groupMessages.filter(isUserMessage).map((message) => {
+				const preview = getUserMessagePreview(
+					message,
+					message.say === "user_feedback_diff" ? "User feedback diff" : "User message",
+				)
+
+				return {
+					ts: message.ts,
+					groupIndex,
+					preview,
+					barWidth: Math.min(30, Math.max(10, 10 + preview.length / 5)),
+				}
+			})
+		})
+	}, [groupedMessages])
+
+	const activeUserMessageTs = useMemo(() => {
+		if (activeGroupIndex === undefined || userMessageNavItems.length === 0) {
+			return undefined
+		}
+
+		let activeItem: UserMessageNavItem | undefined
+
+		for (const item of userMessageNavItems) {
+			if (item.groupIndex <= activeGroupIndex) {
+				activeItem = item
+			} else {
+				break
+			}
+		}
+
+		return activeItem?.ts
+	}, [userMessageNavItems, activeGroupIndex])
+
+	const handleUserMessageNavJump = useCallback((item: UserMessageNavItem) => {
+		disableAutoScrollRef.current = true
+		setActiveGroupIndex(item.groupIndex)
+		virtuosoRef.current?.scrollToIndex({
+			index: item.groupIndex,
+			align: "start",
+			behavior: "smooth",
+		})
+	}, [])
+
+	const handleVirtuosoScrollerRef = useCallback((ref: HTMLElement | Window | null) => {
+		setVirtuosoScroller(ref instanceof HTMLElement ? ref : null)
+	}, [])
+
+	useEffect(() => {
+		if (!virtuosoScroller || userMessageNavItems.length === 0) {
+			return
+		}
+
+		let animationFrame: number | undefined
+
+		const updateActiveUserMessage = () => {
+			const scrollerRect = virtuosoScroller.getBoundingClientRect()
+			const probeY = scrollerRect.top + scrollerRect.height * 0.35
+			const renderedItems = Array.from(virtuosoScroller.querySelectorAll<HTMLElement>("[data-item-index]"))
+
+			let nearestIndex: number | undefined
+			let nearestDistance = Number.POSITIVE_INFINITY
+
+			for (const item of renderedItems) {
+				const index = Number(item.dataset.itemIndex)
+
+				if (!Number.isFinite(index)) {
+					continue
+				}
+
+				const itemRect = item.getBoundingClientRect()
+
+				if (itemRect.top <= probeY && itemRect.bottom >= probeY) {
+					nearestIndex = index
+					break
+				}
+
+				const distance = Math.min(Math.abs(itemRect.top - probeY), Math.abs(itemRect.bottom - probeY))
+
+				if (distance < nearestDistance) {
+					nearestDistance = distance
+					nearestIndex = index
+				}
+			}
+
+			if (nearestIndex !== undefined) {
+				setActiveGroupIndex(nearestIndex)
+			}
+		}
+
+		const handleScroll = () => {
+			if (animationFrame !== undefined) {
+				cancelAnimationFrame(animationFrame)
+			}
+
+			animationFrame = requestAnimationFrame(updateActiveUserMessage)
+		}
+
+		updateActiveUserMessage()
+		virtuosoScroller.addEventListener("scroll", handleScroll, { passive: true })
+
+		return () => {
+			if (animationFrame !== undefined) {
+				cancelAnimationFrame(animationFrame)
+			}
+
+			virtuosoScroller.removeEventListener("scroll", handleScroll)
+		}
+	}, [virtuosoScroller, userMessageNavItems])
+
 	// scrolling
 
 	const scrollToBottomSmooth = useMemo(
@@ -1873,6 +2064,7 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 							increaseViewportBy={{ top: 3_000, bottom: 1000 }}
 							data={groupedMessages}
 							itemContent={itemContent}
+							scrollerRef={handleVirtuosoScrollerRef}
 							atBottomStateChange={(isAtBottom: boolean) => {
 								setIsAtBottom(isAtBottom)
 								if (isAtBottom) {
@@ -1882,6 +2074,11 @@ const ChatViewComponent: React.ForwardRefRenderFunction<ChatViewRef, ChatViewPro
 							}}
 							atBottomThreshold={10}
 							initialTopMostItemIndex={groupedMessages.length - 1}
+						/>
+						<UserMessageNavigator
+							items={userMessageNavItems}
+							activeTs={activeUserMessageTs}
+							onJump={handleUserMessageNavJump}
 						/>
 					</div>
 					<div className={`flex-initial min-h-0 ${!areButtonsVisible ? "mb-1" : ""}`}>
