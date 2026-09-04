@@ -51,6 +51,58 @@ rel/path/to/helper.ts
 const isWindows = process.platform.startsWith("win")
 const binName = isWindows ? "rg.exe" : "rg"
 
+function getRipgrepUniversalPlatformDirs(): string[] {
+	if (process.platform === "win32") {
+		if (process.arch === "arm64") {
+			return ["win32-arm64"]
+		}
+
+		if (process.arch === "ia32") {
+			return ["win32-ia32"]
+		}
+
+		return ["win32-x64"]
+	}
+
+	if (process.platform === "darwin") {
+		if (process.arch === "arm64") {
+			return ["darwin-arm64"]
+		}
+
+		return ["darwin-x64"]
+	}
+
+	if (process.platform === "linux") {
+		if (process.arch === "arm64") {
+			return ["linux-arm64"]
+		}
+
+		if (process.arch === "arm") {
+			return ["linux-arm"]
+		}
+
+		if (process.arch === "ia32") {
+			return ["linux-ia32"]
+		}
+
+		if (process.arch === "ppc64") {
+			return ["linux-ppc64"]
+		}
+
+		if (process.arch === "riscv64") {
+			return ["linux-riscv64"]
+		}
+
+		if (process.arch === "s390x") {
+			return ["linux-s390x"]
+		}
+
+		return ["linux-x64"]
+	}
+
+	return []
+}
+
 interface SearchFileResult {
 	file: string
 	searchResults: SearchResult[]
@@ -83,17 +135,30 @@ export function truncateLine(line: string, maxLength: number = MAX_LINE_LENGTH):
  * Get the path to the ripgrep binary within the VSCode installation
  */
 export async function getBinPath(vscodeAppRoot: string): Promise<string | undefined> {
-	const checkPath = async (pkgFolder: string) => {
-		const fullPath = path.join(vscodeAppRoot, pkgFolder, binName)
+	const checkPath = async (...segments: string[]) => {
+		const fullPath = path.join(vscodeAppRoot, ...segments, binName)
 		return (await fileExistsAtPath(fullPath)) ? fullPath : undefined
 	}
 
-	return (
-		(await checkPath("node_modules/@vscode/ripgrep/bin/")) ||
-		(await checkPath("node_modules/vscode-ripgrep/bin")) ||
-		(await checkPath("node_modules.asar.unpacked/vscode-ripgrep/bin/")) ||
-		(await checkPath("node_modules.asar.unpacked/@vscode/ripgrep/bin/"))
-	)
+	const candidates = [
+		...getRipgrepUniversalPlatformDirs().flatMap((platformDir) => [
+			["node_modules.asar.unpacked", "@vscode", "ripgrep-universal", "bin", platformDir],
+			["node_modules", "@vscode", "ripgrep-universal", "bin", platformDir],
+		]),
+		["node_modules", "@vscode", "ripgrep", "bin"],
+		["node_modules", "vscode-ripgrep", "bin"],
+		["node_modules.asar.unpacked", "vscode-ripgrep", "bin"],
+		["node_modules.asar.unpacked", "@vscode", "ripgrep", "bin"],
+	]
+
+	for (const candidate of candidates) {
+		const rgPath = await checkPath(...candidate)
+		if (rgPath) {
+			return rgPath
+		}
+	}
+
+	return undefined
 }
 
 async function execRipgrep(bin: string, args: string[]): Promise<string> {
