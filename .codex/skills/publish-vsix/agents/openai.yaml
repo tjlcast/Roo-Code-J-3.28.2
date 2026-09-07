@@ -1,0 +1,4 @@
+interface:
+  display_name: "Publish VSIX"
+  short_description: "Publish a built Roo VSIX to static-web"
+  default_prompt: "Use $publish-vsix to publish the built Roo VSIX file."
