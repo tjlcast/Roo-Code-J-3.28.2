@@ -26,26 +26,33 @@ export async function tjl(
 	)
 	await updateAgentInstance(context, "http://localhost:9966")
 
-	// 注册git commit gc
+	// 注册 git commit gc
 	let disposable = vscode.commands.registerCommand("roo-cline.generateCommitMessage", async () => {
 		await asyncGenerateCommitMessageHandler(provider)
 	})
 	context.subscriptions.push(disposable)
 
-	// 注册file map功能
+	// 注册 file map 功能
 	fileMapActivate(context)
 
-	// 注册curl codelens
+	// 注册 curl codelens
 	buildCurlTool(context)
 
-	// 注册mermaid codelens
+	// 注册 mermaid codelens
 	buildMmdTool(context)
 
 	// 注册实时文件内容选择
 	buildSelectedContent(context, provider)
 
-	// 注册markdown provider
+	// 注册 markdown provider
 	buildMarkdownTool(context)
+
+	// 注册手动检查更新命令
+	context.subscriptions.push(
+		vscode.commands.registerCommand("roo-cline.checkForUpdates", async () => {
+			await asyncCheckForUpdates(context, provider, outputChannel)
+		}),
+	)
 
 	// 插件更新检查
 	await asyncCheckForUpdates(context, provider, outputChannel)
