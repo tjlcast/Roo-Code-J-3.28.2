@@ -3,298 +3,240 @@ import path from "path"
 import * as vscode from "vscode"
 import { Parser } from "xml2js"
 import { updateAgentInstance } from "../codeinfill/agent/agent"
-// import { logger } from './logger';
-// import { asyncRunWithStatusBarUpdate } from "./status-bar-item"
 
-// 配置的下载xml地址
-// xml的格式信息参考 ./release.xml 文件
+// XML format reference: ./release-demo.xml
 export const remoteUrl = "https://tjlcast.github.io/static-web/release.xml"
 // export const remoteUrl = "http://197.68.33.61:82/versions/releases/vscode/release.xml"
 
-// 本插件的 extensionId
 export const extensionId = "RooVeterinaryInc.roo-cline"
 
-function getExtensionCurrentVersion(): string {
-	return vscode.extensions.getExtension(extensionId)?.packageJSON.version
-}
-
 export let marketplace_mcp_url: string = "https://app.roocode.com/api/marketplace/mcps"
+
+const pendingUpdateVersionKey = "tjl.pendingUpdateVersion"
+
+type ReleasePlugin = {
+	$: {
+		id: string
+		url?: string
+		version?: string
+	}
+	tabby_endpoint?: string[]
+	chat_endpoint?: string[]
+	model?: string[]
+	marketplace_mcp?: string[]
+}
 
 export const asyncCheckForUpdates = async (
 	context: vscode.ExtensionContext,
 	clineProvider?: any,
 	outputChannel?: vscode.OutputChannel | undefined,
 ) => {
-	// 获取本地插件版本, extensionId 是package.json中的: ${publisher.name}
-	const currentVersion = vscode.extensions.getExtension(extensionId)?.packageJSON.version
+	try {
+		const currentVersion = vscode.extensions.getExtension(extensionId)?.packageJSON.version
+		if (!currentVersion) {
+			outputChannel?.appendLine(`Cannot find installed extension ${extensionId}`)
+			return
+		}
 
-	let xmlId: string | undefined
-	let xmlUrl: string | undefined
-	let xmlVersion: string | undefined
-	let tabbyEndpoint: string | undefined
-	let chatEndpoint: string | undefined
-	let modelName: string | undefined
-	let marketplace_mcp: string | undefined
+		const targetPlugin = await fetchReleasePlugin(outputChannel)
+		if (!targetPlugin?.$?.url || !targetPlugin?.$?.version) {
+			outputChannel?.appendLine(`No valid update metadata found for ${extensionId}`)
+			return
+		}
+
+		const xmlUrl = targetPlugin.$.url
+		const xmlVersion = targetPlugin.$.version
+		const tabbyEndpoint = targetPlugin.tabby_endpoint?.[0]
+		const chatEndpoint = targetPlugin.chat_endpoint?.[0]
+		const modelName = targetPlugin.model?.[0]
+		const marketplaceMcp = targetPlugin.marketplace_mcp?.[0]
+
+		outputChannel?.appendLine(`${extensionId} 当前版本: ${currentVersion}`)
+		outputChannel?.appendLine(`${extensionId} 最新版本: ${xmlVersion}`)
+		outputChannel?.appendLine(`${extensionId} tabby_endpoint: ${tabbyEndpoint}`)
+		outputChannel?.appendLine(`${extensionId} chat_endpoint: ${chatEndpoint}`)
+		outputChannel?.appendLine(`${extensionId} model: ${modelName}`)
+		outputChannel?.appendLine(`${extensionId} marketplace_mcp: ${marketplaceMcp}`)
+		outputChannel?.show()
+
+		await applyRemoteConfig(context, clineProvider, tabbyEndpoint, chatEndpoint, modelName, marketplaceMcp)
+
+		if (compareVersions(currentVersion, xmlVersion) !== -1) {
+			await context.globalState.update(pendingUpdateVersionKey, undefined)
+			vscode.window.showInformationMessage(`${extensionId} Currently up-to-date`)
+			return
+		}
+
+		const pendingVersion = context.globalState.get<string>(pendingUpdateVersionKey)
+		if (pendingVersion === xmlVersion) {
+			await promptReload(xmlVersion)
+			return
+		}
+
+		await installUpdate(xmlUrl, xmlVersion, context, outputChannel)
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error)
+		outputChannel?.appendLine(`${extensionId} update failed: ${message}`)
+		vscode.window.showErrorMessage(`${extensionId} 插件更新失败: ${message}`)
+	}
+}
+
+async function fetchReleasePlugin(outputChannel?: vscode.OutputChannel): Promise<ReleasePlugin | undefined> {
+	const response = await fetch(remoteUrl + "?t=" + Date.now())
+	if (!response.ok) {
+		outputChannel?.appendLine(`Failed to fetch release xml. Status: ${response.status}`)
+		return undefined
+	}
+
+	const xmlString = await response.text()
+	const result = await new Parser().parseStringPromise(xmlString)
+	const plugins = result?.plugins?.plugin as ReleasePlugin[] | undefined
+
+	return plugins?.find((plugin) => plugin.$.id === extensionId)
+}
+
+async function applyRemoteConfig(
+	context: vscode.ExtensionContext,
+	clineProvider: any,
+	tabbyEndpoint?: string,
+	chatEndpoint?: string,
+	modelName?: string,
+	marketplaceMcp?: string,
+) {
+	if (marketplaceMcp && marketplaceMcp.length > 0) {
+		marketplace_mcp_url = marketplaceMcp
+	}
+
+	await updateAgentInstance(context, tabbyEndpoint && tabbyEndpoint.length > 0 ? tabbyEndpoint : "")
+
+	if (!chatEndpoint || chatEndpoint.length === 0) {
+		return
+	}
 
 	try {
-		// 获取远程 XML 文件内容
-		const response = await fetch(remoteUrl + "?t=" + Date.now())
-		const xmlString = await response.text()
+		if (!clineProvider?.providerSettingsManager) {
+			return
+		}
 
-		// 解析 XML 文件
-		const parser = new Parser()
-		parser.parseString(xmlString, async (err, result) => {
-			if (err) {
-				console.error("Error parsing XML:", err)
-				return
-			}
+		const defaultConfig = {
+			apiProvider: "openai" as const,
+			openAiBaseUrl: chatEndpoint,
+			openAiApiKey: "sk-default-key",
+			openAiModelId: modelName,
+			openAiHeaders: {},
+			openAiLegacyFormat: true,
+		}
 
-			// 提取jialtang.vscode-chatgpt-plugin的 id、url 和 version 属性
-			const plugins = result.plugins.plugin
-			const targetPlugin = plugins.find((plugin: { $: { id: string } }) => plugin.$.id === extensionId)
+		const configId = await clineProvider.providerSettingsManager.saveConfig("default", defaultConfig)
+		await clineProvider.providerSettingsManager.activateProfile({ name: "default" })
 
-			xmlId = targetPlugin.$.id
-			xmlUrl = targetPlugin.$.url
-			xmlVersion = targetPlugin.$.version
-			tabbyEndpoint = targetPlugin.tabby_endpoint[0]
-			chatEndpoint = targetPlugin.chat_endpoint[0]
-			modelName = targetPlugin.model[0]
-			marketplace_mcp = targetPlugin.marketplace_mcp[0]
-			outputChannel?.appendLine(`${extensionId} 当前版本: ${currentVersion}`)
-			outputChannel?.appendLine(`${extensionId} 最新版本: ${xmlVersion}`)
-			outputChannel?.appendLine(`${extensionId} tabby_endpoint: ${tabbyEndpoint}`)
-			outputChannel?.appendLine(`${extensionId} chat_endpoint: ${chatEndpoint}`)
-			outputChannel?.appendLine(`${extensionId} model: ${modelName}`)
-			outputChannel?.appendLine(`${extensionId} marketplace_mcp: ${marketplace_mcp}`)
-			outputChannel?.show()
-			if (marketplace_mcp !== undefined) {
-				marketplace_mcp_url = marketplace_mcp
-			}
-		})
+		await clineProvider.providerSettingsManager.setModeConfig("architect", configId)
+		await clineProvider.providerSettingsManager.setModeConfig("code", configId)
+		await clineProvider.providerSettingsManager.setModeConfig("ask", configId)
+		await clineProvider.providerSettingsManager.setModeConfig("debug", configId)
+		await clineProvider.providerSettingsManager.setModeConfig("orchestrator", configId)
+
+		if (clineProvider.view?.webview) {
+			clineProvider.view.webview.postMessage({
+				type: "state",
+				state: {
+					apiConfiguration: {
+						apiProvider: "openai",
+						openAiBaseUrl: chatEndpoint,
+						openAiApiKey: "sk-default-key",
+						openAiModelId: modelName,
+						openAiHeaders: {},
+						openAiLegacyFormat: true,
+					},
+				},
+			})
+		}
 	} catch (error) {
-		// 获取更新信息失败则直接停止
-		return
-	}
-
-	if (!(xmlId && xmlUrl && xmlVersion)) {
-		return
-	}
-
-	// 保存 marketplace_mcp 到配置
-	if (marketplace_mcp && marketplace_mcp?.length > 0) {
-		const config = vscode.workspace.getConfiguration("roo-code")
-		config.update("marketplace.mcp.url", marketplace_mcp, vscode.ConfigurationTarget.Global)
-	}
-
-	if (tabbyEndpoint && tabbyEndpoint?.length > 0) {
-		updateAgentInstance(context, tabbyEndpoint)
-	} else {
-		updateAgentInstance(context, "")
-	}
-
-	if (chatEndpoint && chatEndpoint?.length > 0) {
-		// 获取配置对象
-		const config = vscode.workspace.getConfiguration("chatgpt")
-		// 设置配置项的值
-		config.update("gpt.apiBaseUrl", chatEndpoint, vscode.ConfigurationTarget.Global).then(() => {
-			const apiBaseUrl = vscode.workspace.getConfiguration("chatgpt").get<string>("gpt.apiBaseUrl")?.trim() || ""
-			// logger().info(`update chatgpt.gpt.apiBaseUrl: ${apiBaseUrl}`);
-		})
-
-		// 使用XML中提取的信息配置一个名为default的提供商
-		try {
-			// 通过clineProvider参数访问ProviderSettingsManager
-			if (clineProvider && clineProvider.providerSettingsManager) {
-				const provider_settings = await clineProvider.providerSettingsManager.load()
-				// ` 这里的 provider_settings 内容如下
-				// {
-				//   currentApiConfigName: "default",
-				//   apiConfigs: {
-				//     default: {
-				//       apiProvider: "openai",
-				//       openAiBaseUrl: "http://121.40.102.152:9966/v1",
-				//       openAiApiKey: "sk-default-key",
-				//       openAiLegacyFormat: true,
-				//       openAiModelId: "gpt-4o",
-				//       openAiHeaders: {
-				//       },
-				//       id: "30ncrmoduyy",
-				//     },
-				//     localhost: {
-				//       apiProvider: "openai",
-				//       openAiBaseUrl: "http://localhost:9966/v1",
-				//       openAiApiKey: "xxx",
-				//       openAiLegacyFormat: true,
-				//       openAiModelId: "gpt-4o",
-				//       openAiHeaders: {
-				//       },
-				//       id: "yh9reorhfk9",
-				//     },
-				//   },
-				//   modeApiConfigs: {
-				//     architect: "30ncrmoduyy",
-				//     code: "30ncrmoduyy",
-				//     ask: "30ncrmoduyy",
-				//     debug: "30ncrmoduyy",
-				//     orchestrator: "30ncrmoduyy",
-				//   },
-				//   migrations: {
-				//     rateLimitSecondsMigrated: true,
-				//     diffSettingsMigrated: true,
-				//     openAiHeadersMigrated: true,
-				//     consecutiveMistakeLimitMigrated: true,
-				//     todoListEnabledMigrated: true,
-				//   },
-				// }
-				// `
-
-				// 创建新的default配置
-				const defaultConfig = {
-					apiProvider: "openai" as const,
-					openAiBaseUrl: chatEndpoint,
-					openAiApiKey: "sk-default-key", // 默认API密钥占位符
-					openAiModelId: modelName, // 默认模型
-					// 添加一些默认配置项以避免显示欢迎界面
-					openAiHeaders: {},
-					openAiLegacyFormat: true,
-				}
-
-				// 保存默认配置
-				const configId = await clineProvider.providerSettingsManager.saveConfig("default", defaultConfig)
-
-				// 激活默认配置
-				await clineProvider.providerSettingsManager.activateProfile({ name: "default" })
-
-				await clineProvider.providerSettingsManager.setModeConfig("architect", configId)
-				await clineProvider.providerSettingsManager.setModeConfig("code", configId)
-				await clineProvider.providerSettingsManager.setModeConfig("ask", configId)
-				await clineProvider.providerSettingsManager.setModeConfig("debug", configId)
-				await clineProvider.providerSettingsManager.setModeConfig("orchestrator", configId)
-
-				// 更新 ExtensionStateContext 中的状态，确保不会再次显示欢迎界面
-				if (clineProvider.view?.webview) {
-					clineProvider.view.webview.postMessage({
-						type: "state",
-						state: {
-							apiConfiguration: {
-								apiProvider: "openai",
-								openAiBaseUrl: chatEndpoint,
-								openAiApiKey: "sk-default-key",
-								openAiModelId: modelName,
-								openAiHeaders: {},
-								openAiLegacyFormat: true,
-							},
-						},
-					})
-				}
-
-				console.log("Default provider configured with ID:", configId)
-			}
-		} catch (error) {
-			console.error("Failed to configure default provider:", error)
-		}
-	}
-
-	if (compareVersions(currentVersion, xmlVersion) === -1) {
-		// 如果当前版本低于远端版本，则准备更新
-		const isUpdate = "Yes"
-		vscode.window.showInformationMessage(`${extensionId} 有新版本: + ${xmlVersion} + ，正在更新中`)
-		if (isUpdate === "Yes") {
-			if (!(xmlId && xmlUrl && xmlVersion)) {
-				return
-			}
-			// 下载并安装新版本的扩展包
-			const localFilePath = await downloadAndInstall(xmlUrl, context)
-			// 提示安装成功
-			vscode.window.showInformationMessage(
-				`${extensionId} 插件更新成功: ${xmlVersion} + .\n Please reload plugin \n` + localFilePath,
-			)
-			// 删除下载安装包
-			deleteFile(localFilePath)
-		} else {
-			vscode.window.showInformationMessage(`${extensionId} 插件更新取消: ${xmlVersion}`)
-		}
-	} else {
-		// 当前是最新版本，无需更新
-		vscode.window.showInformationMessage(`${extensionId} Currently up-to-date`)
+		console.error("Failed to configure default provider:", error)
 	}
 }
 
-function compareVersions(version1: string, version2: string): number {
-	// 将版本号字符串解析为数字数组
-	const parts1 = version1.split(".").map((part) => parseInt(part, 10))
-	const parts2 = version2.split(".").map((part) => parseInt(part, 10))
+async function installUpdate(
+	downloadUrl: string,
+	version: string,
+	context: vscode.ExtensionContext,
+	outputChannel?: vscode.OutputChannel,
+) {
+	const localFilePath = await vscode.window.withProgress(
+		{
+			location: vscode.ProgressLocation.Notification,
+			title: `${extensionId} updating to ${version}`,
+			cancellable: false,
+		},
+		async (progress) => {
+			const vsixPath = await downloadVsix(downloadUrl, version, context, progress)
 
-	// 比较每个部分
-	for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
-		const part1 = parts1[i] || 0 // 如果没有第 i 个部分，默认为 0
-		const part2 = parts2[i] || 0
+			progress.report({ message: "Installing VSIX..." })
+			await vscode.commands.executeCommand("workbench.extensions.installExtension", vscode.Uri.file(vsixPath))
 
-		if (part1 < part2) {
-			return -1 // version1 小于 version2
-		} else if (part1 > part2) {
-			return 1 // version1 大于 version2
-		}
-	}
+			return vsixPath
+		},
+	)
 
-	return 0 // 两个版本号相等
+	await context.globalState.update(pendingUpdateVersionKey, version)
+	outputChannel?.appendLine(`${extensionId} installed update package: ${localFilePath}`)
+	await promptReload(version)
 }
 
-async function downloadAndInstall(downloadUrl: string, context: vscode.ExtensionContext) {
+async function downloadVsix(
+	downloadUrl: string,
+	version: string,
+	context: vscode.ExtensionContext,
+	progress?: vscode.Progress<{ message?: string; increment?: number }>,
+) {
+	progress?.report({ message: "Downloading VSIX..." })
 	const response = await fetch(downloadUrl)
 	console.info(`download url: ${downloadUrl}`)
 
 	if (!response.ok) {
-		throw new Error(`Failed to fetch remote extension.Status: ${response.status}`)
+		throw new Error(`Failed to fetch remote extension. Status: ${response.status}`)
 	}
 
-	// 本地保存路径
-	// 这里使用'..'来保证在不同系统中正确的执行
-	// const localFilePath = path.join(context.extensionPath, 'extension_download.vsix');
-	const localFilePath = path.join(context.extensionPath, "..", "extension_download.vsix")
+	const buffer = Buffer.from(await response.arrayBuffer())
+	if (buffer.length < 4 || buffer[0] !== 0x50 || buffer[1] !== 0x4b) {
+		throw new Error("Downloaded file is not a valid VSIX/ZIP package")
+	}
 
-	// 读取文件内容
-	const blob = await response.blob()
-	// 将文件内容写入本地文件, 安装插件的root目录
-	fs.writeFileSync(localFilePath, Buffer.from(await blob.arrayBuffer()))
+	const updateDir = path.join(context.globalStorageUri.fsPath, "updates")
+	await fs.promises.mkdir(updateDir, { recursive: true })
+
+	const localFilePath = path.join(updateDir, `roo-cline-${version}.vsix`)
+	await fs.promises.writeFile(localFilePath, buffer)
 	console.info(`Save vsix as ${localFilePath}`)
-
-	// 安装下载到本地的插件
-	await vscode.commands.executeCommand(
-		"workbench.extensions.installExtension",
-		vscode.Uri.file(localFilePath),
-		// vscode.Uri.parse(downloadUrl)
-	)
-	console.info(`Install vsix as ${localFilePath}`)
-	await pause(5000) // 暂停3秒, 防止vscode加载失败
 
 	return localFilePath
 }
 
-function pause(ms: number): Promise<void> {
-	return new Promise((resolve) => setTimeout(resolve, ms))
-}
+async function promptReload(version: string) {
+	const action = await vscode.window.showInformationMessage(
+		`${extensionId} 已安装更新 ${version}，需要重新加载 VS Code 后生效。`,
+		"Reload Now",
+	)
 
-function deleteFile(filePath: string): void {
-	try {
-		// 检查文件是否存在
-		if (fs.existsSync(filePath)) {
-			// 删除文件
-			fs.unlinkSync(filePath)
-			console.log(`${filePath} 已删除`)
-		} else {
-			console.log(`${filePath} 不存在`)
-		}
-	} catch (err) {
-		console.error(`删除文件时出错: ${err}`)
+	if (action === "Reload Now") {
+		await vscode.commands.executeCommand("workbench.action.reloadWindow")
 	}
 }
 
-// 模拟长耗时的异步函数
-async function longRunningTask() {
-	return new Promise<void>((resolve) => {
-		setTimeout(() => {
-			resolve()
-		}, 15000) // 5秒延迟
-	})
+function compareVersions(version1: string, version2: string): number {
+	const parts1 = version1.split(".").map((part) => parseInt(part, 10))
+	const parts2 = version2.split(".").map((part) => parseInt(part, 10))
+
+	for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+		const part1 = parts1[i] || 0
+		const part2 = parts2[i] || 0
+
+		if (part1 < part2) {
+			return -1
+		} else if (part1 > part2) {
+			return 1
+		}
+	}
+
+	return 0
 }
